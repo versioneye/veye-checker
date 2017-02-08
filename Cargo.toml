@@ -1,0 +1,10 @@
+[package]
+name = "veye-checker"
+version = "0.1.0"
+authors = ["timgluz <timgluz@gmail.com>"]
+
+[dependencies]
+sha1          = "^0.2.0"
+sha2          = "^0.4.2"
+base64        = "^0.3.0"
+regex         = "^0.2"
