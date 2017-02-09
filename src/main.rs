@@ -1,20 +1,20 @@
 extern crate sha2;
 extern crate base64;
-extern crate regex;
 extern crate sha1;
 
 use sha1::{Sha1};
 use sha2::{Sha512, Digest};
 use base64::{encode};
-use regex::Regex;
 
 use std::io::prelude::*;
-use std::fs::File;
+use std::path::Path;
+use std::io;
+use std::fs::{self, File};
 use std::process;
 use std::env;
 
-fn encode_jar(filepath: &str) -> String {
-    println!("Going to read jar file from {}", filepath);
+fn encode_jar(filepath: &Path) -> String {
+    //println!("Going to read jar file from {:?}", filepath);
 
     let mut f = File::open(filepath).ok().expect("Failed to read file");
     let mut buffer = Vec::new();
@@ -26,8 +26,8 @@ fn encode_jar(filepath: &str) -> String {
     hasher.digest().to_string()
 }
 
-fn encode_nuget(filepath: &str) -> String {
-    println!("Going to read nupkg file from {}", filepath);
+fn encode_nuget(filepath: &Path) -> String {
+    //println!("Going to read nupkg file from {:?}", filepath);
 
     let mut f = File::open(filepath).ok().expect("Failed to read file");
     let mut buffer = Vec::new();
@@ -42,21 +42,42 @@ fn encode_nuget(filepath: &str) -> String {
 
 // founds the right encoder based on the filepath
 // returns None when filetype is unsupported
-fn dispatch_encoder(filepath: &str) -> Option<String> {
-    let nupkg_rule  = Regex::new(r"\.nupkg\z").unwrap();
-    let jar_rule    = Regex::new(r"\.jar\z").unwrap();
+fn dispatch_encoder(filepath: &Path) -> Option<String> {
+    let opt_ext = filepath.extension();
+    if opt_ext.is_none() { return None; } //when hidden file or file has no extensions
 
-    if nupkg_rule.is_match(filepath) {
-        println!("It's nuget file");
-        Some(encode_nuget(filepath))
+    let file_ext = opt_ext.unwrap().to_str().unwrap_or("");
 
-    } else if jar_rule.is_match(filepath) {
-        println!("It's java jar file");
-        Some(encode_jar(filepath))
+    match file_ext {
+        "nupkg" => Some(encode_nuget(filepath)),
+        "jar"   => Some(encode_jar(filepath)),
+        _       => None
+    }
+}
 
-    } else {
-        println!("Unsupported filename");
-        None
+fn walk_recursive_path(dir: &Path) -> io::Result<()>  {
+
+    if dir.is_dir() {
+        for entry in try!(fs::read_dir(dir)) {
+            let entry = try!(entry);
+            let path = entry.path();
+
+            if path.is_dir() {
+                walk_recursive_path(&path);
+            } else {
+                print_file_sha(&path, dispatch_encoder(&path));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn print_file_sha(file_path: &Path, file_sha: Option<String>){
+
+    match file_sha {
+        Some(res) => println!("{:?},{}", file_path, res),
+        None      => ()
     }
 }
 
@@ -65,13 +86,12 @@ fn main() {
     let args: Vec<_> = env::args().collect();
 
     if args.len() != 2 {
-        println!("Missing filename.");
+        println!("Missing folder.");
         process::exit(0);
     }
 
-    let ref filepath = args[1];
-    match dispatch_encoder(filepath){
-        Some(res) => println!("sha512: {}", res),
-        None      => println!("error: unsupported file type")
-    }
+    let ref path = args[1];
+    let dir = Path::new(path);
+    println!("Scanning: {}", path);
+    walk_recursive_path(dir);
 }
