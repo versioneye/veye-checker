@@ -7,3 +7,4 @@ authors = ["timgluz <timgluz@gmail.com>"]
 sha1          = "^0.2.0"
 sha2          = "^0.4.2"
 base64        = "^0.3.0"
+getopts       = "^0.2"
