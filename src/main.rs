@@ -6,17 +6,41 @@ extern crate getopts;
 
 use getopts::Options;
 use std::path::Path;
+use std::fs::File;
+use std::io::Write;
 use std::process;
 use std::env;
 
 mod checker;
 
+fn init_out_file(outfile_path: &Path) -> Result<bool, std::io::Error> {
+    //it creates a new file or truncates existing one
+    let mut f = File::create( outfile_path ).ok().expect("Failed to create output file");
+    try!(f.write_all(b"file_path,package_sha\n"));
+    try!(f.sync_all());
 
-fn do_scan_task(dir_txt: &str) {
+    Ok(true)
+}
+
+fn do_scan_task(dir_txt: &str, outpath: Option<String>) -> Result<bool, std::io::Error>{
     println!("Scanning: {}", dir_txt);
     let dir = Path::new(dir_txt);
 
-    checker::walk_recursive_path(dir);
+    if outpath.is_some() {
+        println!("Will dump results into file...");
+        let path_str = outpath.unwrap();
+        let out_dir =  Path::new(&path_str);
+        let res = init_out_file(&out_dir);
+        match res {
+            Ok(_)   => checker::scan_dir(dir, Some(&out_dir)),
+            Err(e)  => Err(e)
+        };
+
+    } else {
+        println!("No output file were defined");
+        checker::scan_dir(dir, None);
+    }
+    Ok(true)
 }
 
 fn show_usage(program_name: &str, opts: Options){
@@ -54,6 +78,9 @@ fn main() {
         return;
     };
 
-
-    do_scan_task(&input);
+    // fire the task
+    match do_scan_task(&input, output){
+        Ok(res) => println!("Done!"),
+        Err(e)  => println!("Failed to scan folders")
+    };
 }

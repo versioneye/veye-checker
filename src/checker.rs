@@ -6,6 +6,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::io;
 use std::fs::{self, File};
+use std::fs::OpenOptions;
 
 fn encode_jar(filepath: &Path) -> String {
     //println!("Going to read jar file from {:?}", filepath);
@@ -49,7 +50,7 @@ fn dispatch_encoder(filepath: &Path) -> Option<String> {
     }
 }
 
-pub fn walk_recursive_path(dir: &Path) -> io::Result<()>  {
+pub fn scan_dir(dir: &Path, outpath: Option<&Path> ) -> Result<bool, io::Error>  {
 
     if dir.is_dir() {
         for entry in try!(fs::read_dir(dir)) {
@@ -57,20 +58,41 @@ pub fn walk_recursive_path(dir: &Path) -> io::Result<()>  {
             let path = entry.path();
 
             if path.is_dir() {
-                walk_recursive_path(&path);
+                scan_dir(&path, outpath);
+            } else if path.is_file() {
+                print_sha(&path, dispatch_encoder(&path), outpath);
             } else {
-                print_file_sha(&path, dispatch_encoder(&path));
+                println!("Going to ignore {:?}", path.to_str());
             }
         }
     }
 
-    Ok(())
+    Ok(true)
 }
 
-fn print_file_sha(file_path: &Path, file_sha: Option<String>){
+fn print_sha(file_path: &Path, file_sha: Option<String>, outpath: Option<&Path>){
 
     match file_sha {
-        Some(res) => println!("{:?},{}", file_path, res),
+        Some(res) => {
+            if outpath.is_some() {
+                print_sha_file(&file_path, &res, &outpath.unwrap())
+            } else {
+                print_sha_screen(&file_path, &res)
+            }
+        },
         None      => ()
     }
+}
+
+fn print_sha_screen(file_path: &Path, file_sha: &str){
+    println!("{:?},{}", file_path, file_sha);
+}
+
+fn print_sha_file(file_path: &Path, file_sha: &str, outpath: &Path){
+    let mut f = OpenOptions::new().write(true).append(true).open(outpath).expect("Failed to open output file");
+        //.ok().expect("Failed to write line into output file");
+    let line = format!("{:?},{}\n", file_path, file_sha);
+    f.write_all( line.as_bytes() ).expect("Failed to write sha line to file");
+    f.sync_all().expect("Failed to sync buffer into output file");
+
 }
