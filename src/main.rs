@@ -3,6 +3,9 @@ extern crate sha2;
 extern crate base64;
 extern crate sha1;
 extern crate getopts;
+extern crate hyper;
+extern crate hyper_native_tls;
+extern crate rustc_serialize;
 
 use getopts::Options;
 use std::path::Path;
@@ -12,17 +15,18 @@ use std::process;
 use std::env;
 
 mod checker;
+mod api;
+
+use api::CSVSerializer;
 
 fn init_out_file(outfile_path: &Path) -> Result<bool, std::io::Error> {
     //it creates a new file or truncates existing one
     let mut f = File::create( outfile_path ).ok().expect("Failed to create output file");
     try!(f.write_all(b"file_path,package_sha\n"));
     try!(f.sync_all());
-
+    
     Ok(true)
 }
-
-
 
 fn show_usage(program_name: &str, opts: Options) -> Result<bool, String> {
     let brief = format!(r#"
@@ -115,9 +119,15 @@ fn do_lookup_task(matches: &getopts::Matches) -> Result<bool, String> {
     } else {
         matches.free[1].clone()
     };
+
     let api_key = matches.opt_str("a");
+    if api_key.is_none() {
+        panic!("Missing API_KEY!");
+    }
 
     println!("Going to checkup product details by SHA: #{}", file_sha);
+    let product = api::fetch_product_by_sha(&file_sha, &api_key.unwrap());
+    println!("{}", product.unwrap().to_csv());
 
     Ok(true)
 }
