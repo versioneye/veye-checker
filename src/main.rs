@@ -6,6 +6,7 @@ extern crate getopts;
 extern crate hyper;
 extern crate hyper_native_tls;
 extern crate rustc_serialize;
+extern crate csv;
 
 use getopts::Options;
 use std::path::Path;
@@ -13,6 +14,9 @@ use std::fs::File;
 use std::io::Write;
 use std::process;
 use std::env;
+use std::error::Error;
+use std::rc::Rc;
+use std::borrow::Borrow;
 
 mod checker;
 mod api;
@@ -32,9 +36,10 @@ fn show_usage(program_name: &str, opts: Options) -> Result<bool, String> {
     let brief = format!(r#"
         usage:
             {} scan DIRECTORY_PATH -o OUTPUT_FILE
-            {} lookop FILE_SHA -a API_TOKEN
+            {} lookup FILE_SHA -a API_TOKEN
+            {} lookup_csv SHA_FILE_PATH -o OUTPUT_FILE -a API_TOKEN
         "#,
-        program_name, program_name
+        program_name, program_name, program_name
     );
     print!("{}", opts.usage(&brief));
     Ok(true)
@@ -69,15 +74,14 @@ fn main() {
     }
 
     let command = matches.free[0].clone();
-    //println!("User asked command: {}", command);
-
-    match command.as_ref() {
-        "scan"      => do_scan_task(&matches),
-        "lookup"    => do_lookup_task(&matches),
-        _           => show_usage(&program_name, opts)
+    let cmd_res = match command.as_ref() {
+        "scan"          => do_scan_task(&matches),
+        "lookup"        => do_lookup_task(&matches),
+        "lookup_csv"    => do_lookup_csv_task(&matches),
+        _               => show_usage(&program_name, opts)
     };
 
-    println!("Done")
+    print_cmd_result(cmd_res);
 }
 
 
@@ -98,11 +102,7 @@ fn do_scan_task(matches: &getopts::Matches) -> Result<bool, String> {
         let path_str = outpath.unwrap();
         let out_dir =  Path::new(&path_str);
         let res = init_out_file(&out_dir);
-        let cmd_res = match res {
-            Ok(_)   => checker::scan_dir(dir, Some(&out_dir)),
-            Err(e)  => Err(e)
-        };
-        print_cmd_result(cmd_res);
+        checker::scan_dir(dir, Some(&out_dir));
 
     } else {
         println!("No output file were defined");
@@ -126,15 +126,52 @@ fn do_lookup_task(matches: &getopts::Matches) -> Result<bool, String> {
     }
 
     println!("Going to checkup product details by SHA: #{}", file_sha);
-    let product = api::fetch_product_by_sha(&file_sha, &api_key.unwrap());
-    println!("{}", product.unwrap().to_csv());
+    let product_res = api::fetch_product_by_sha(&file_sha, &api_key.unwrap());
+    match product_res {
+        Ok(product) => println!("{}", product.to_csv()),
+        Err(e)      => println!("{}", e.description() )
+    };
 
     Ok(true)
 }
 
-fn print_cmd_result(cmd_res: Result<bool, std::io::Error>){
+fn do_lookup_csv_task(matches: &getopts::Matches) -> Result<bool, String> {
+    let sha_results_filepath = if matches.free.len() != 2 {
+        panic!("lookup_csv: no input file was specified");
+    } else {
+        matches.free[1].clone()
+    };
+
+    let api_key = matches.opt_str("a").expect("Missing API_KEY!");
+    let output_path = matches.opt_str("o").expect("Missing output file");
+
+    let mut rdr = csv::Reader::from_file(
+        sha_results_filepath.clone()
+    ).expect(format!("Failed to read SHA file from {}", sha_results_filepath).as_ref());
+
+    let mut wtr = csv::Writer::from_file(output_path).ok().unwrap();
+
+    for row in rdr.decode() {
+
+        let (file_path, file_sha): (String, String) = row.unwrap();
+        let res_csv_line = match api::fetch_product_by_sha(&file_sha.clone(), &api_key) {
+            Ok(product) => {
+                wtr.encode(vec![file_path, file_sha, "true".to_string(),  product.to_csv() ])
+            },
+            Err(_)    => {
+                wtr.encode(vec![file_path, file_sha, "false".to_string()])
+            }
+        };
+
+    };
+
+    Ok(true)
+}
+
+
+fn print_cmd_result(cmd_res: Result<bool, std::string::String>){
     match cmd_res {
-        Ok(res) => println!("Done!"),
-        Err(e)  => println!("Failed to finish the task")
+        Ok(_) => println!("Done!"),
+        Err(e)  => println!("Failed to finish the task: {}", e)
     };
 }

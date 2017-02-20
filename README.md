@@ -18,7 +18,14 @@ veye-checker scan ../temp/ -o results.csv
 
 ```bash
 
-veye-checker lookup <SHA_STRING> -a <YOUR_API_CODE>
+veye-checker lookup <SHA_STRING> -a <YOUR_API_KEY>
+```
+
+* **lookup_csv** - looks up SHA values from the `scan` output file and 
+tries to fetch product info from the Versioneye API. 
+
+```rust
+veye-checker lookup_csv scan_results.csv -a <YOUR_API_KEY> -o res.csv
 ```
 
 

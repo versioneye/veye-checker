@@ -41,11 +41,15 @@ fn process_sha_response(json_text: Option<String> ) -> Result<ProductDetail, io:
     let json_obj = Json::from_str( &json_text).expect("Failed to parse product JSON");
 
     if !json_obj.is_array() {
-        println!("Found no matches");
         return Err(Error::new( ErrorKind::Other, "Product response wasnt array"));
     }
 
-    let product_doc = json_obj[0].clone();
+    let product_doc = match json_obj.as_array() {
+        Some(products) if products.len() > 0 => products[0].clone(),
+        _ => return Err(Error::new(ErrorKind::Other, "Empty response"))
+    };
+
+    //let product_doc = json_obj[0].clone();
     let product = ProductDetail {
         language: product_doc["language"].as_string().unwrap().to_string(),
         prod_key: product_doc["prod_key"].as_string().unwrap().to_string(),
@@ -55,8 +59,6 @@ fn process_sha_response(json_text: Option<String> ) -> Result<ProductDetail, io:
         sha_value: product_doc["sha_value"].as_string().unwrap().to_string(),
         sha_method: product_doc["sha_method"].as_string().unwrap().to_string()
     };
-
-    println!("product_doc: {}", product_doc);
 
     Ok(product)
 }
@@ -76,7 +78,7 @@ fn request_json(req_url: &str) -> Option<String> {
     Some(body)
 }
 
-pub fn fetch_product_by_sha(sha: &str, api_key: &str) -> Option<ProductDetail> {
+pub fn fetch_product_by_sha(sha: &str, api_key: &str) -> Result<ProductDetail, io::Error> {
 
     let api_url = format!(
         "https://www.versioneye.com/api/v2/products/sha/{}?api_key={}",
@@ -84,8 +86,5 @@ pub fn fetch_product_by_sha(sha: &str, api_key: &str) -> Option<ProductDetail> {
     );
 
     let json_txt = request_json( &api_url );
-    match process_sha_response(json_txt) {
-        Ok(product) => Some(product),
-        Err(err)        => None
-    }
+    process_sha_response(json_txt)
 }
