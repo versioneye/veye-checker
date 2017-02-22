@@ -20,8 +20,9 @@ use std::borrow::Borrow;
 
 mod checker;
 mod api;
+mod product;
 
-use api::CSVSerializer;
+use product::CSVSerializer;
 
 fn init_out_file(outfile_path: &Path) -> Result<bool, std::io::Error> {
     //it creates a new file or truncates existing one
@@ -111,6 +112,29 @@ fn do_scan_task(matches: &getopts::Matches) -> Result<bool, String> {
     Ok(true)
 }
 
+fn fetch_product_details(file_sha: &str, api_key: &str) -> Result<product::ProductMatch, std::io::Error> {
+    println!("Going to checkup product by SHA: {}", file_sha);
+    let sha_res = api::fetch_product_by_sha(&file_sha, &api_key.clone());
+
+
+    match sha_res {
+        Ok(m) => {
+            println!("Going to check product details by matched SHA result");
+            let sha = m.sha.expect("No product sha from SHA result");
+            let product = m.product.expect("No product info from SHA result");
+            match api::fetch_product( &product.language, &product.prod_key, &product.version, &api_key ) {
+                Ok(mut m) => {
+                    m.sha = Some(sha);
+                    Ok(m)
+                },
+                Err(e) => Err(e)
+            }
+
+        },
+        Err(e) => Err(e)
+    }
+}
+
 fn do_lookup_task(matches: &getopts::Matches) -> Result<bool, String> {
 
     let file_sha = if matches.free.len() != 2 {
@@ -120,17 +144,25 @@ fn do_lookup_task(matches: &getopts::Matches) -> Result<bool, String> {
         matches.free[1].clone()
     };
 
-    let api_key = matches.opt_str("a");
-    if api_key.is_none() {
-        panic!("Missing API_KEY!");
-    }
+    let api_key = matches.opt_str("a").expect("Missing API_KEY!");
+    let out_filepath = matches.opt_str("o");
 
-    println!("Going to checkup product details by SHA: #{}", file_sha);
-    let product_res = api::fetch_product_by_sha(&file_sha, &api_key.unwrap());
-    match product_res {
-        Ok(product) => println!("{}", product.to_csv()),
-        Err(e)      => println!("{}", e.description() )
-    };
+    match fetch_product_details(&file_sha.clone(), &api_key) {
+        Ok(m) => {
+            if out_filepath.is_none() {
+                println!("{}{}", m.to_csv_header(), m.to_csv() )
+            } else {
+                let out_fp = out_filepath.unwrap();
+                let mut wtr = File::create(out_fp).expect("Failed to open outout file");
+                wtr.write_all(& m.to_csv_header().into_bytes());
+                wtr.write_all(& m.to_csv().into_bytes());
+                wtr.sync_data();
+
+                println!("Dumped result into specified file;");
+            }
+        },
+        Err(e)  => println!("No product info for sha {}", file_sha)
+    }
 
     Ok(true)
 }
@@ -149,21 +181,45 @@ fn do_lookup_csv_task(matches: &getopts::Matches) -> Result<bool, String> {
         sha_results_filepath.clone()
     ).expect(format!("Failed to read SHA file from {}", sha_results_filepath).as_ref());
 
-    let mut wtr = csv::Writer::from_file(output_path).ok().unwrap();
+    let mut csv_rows = vec![];
 
     for row in rdr.decode() {
 
         let (file_path, file_sha): (String, String) = row.unwrap();
-        let res_csv_line = match api::fetch_product_by_sha(&file_sha.clone(), &api_key) {
-            Ok(product) => {
-                wtr.encode(vec![file_path, file_sha, "true".to_string(),  product.to_csv() ])
+        match fetch_product_details(&file_sha.clone(), &api_key){
+            Ok(mut m) => {
+                m.filepath = Some(file_path.clone());
+                if csv_rows.len() == 0 {
+                    csv_rows.push(m.to_csv_header());
+                }
+
+                csv_rows.push(m.to_csv());
             },
-            Err(_)    => {
-                wtr.encode(vec![file_path, file_sha, "false".to_string()])
+            Err(e) => {
+                println!("Failed to get product details for {}, {}", file_path.clone(), file_sha.clone());
+                let empty_m = product::ProductMatch {
+                    sha: None,
+                    product: None,
+                    url: None,
+                    licenses: vec![],
+                    n_vulns: 0,
+                    filepath: Some(file_path.clone())
+                };
+
+                if csv_rows.len() == 0 {
+                    csv_rows.push(empty_m.to_csv_header());
+                }
+                csv_rows.push(empty_m.to_csv());
             }
-        };
+        }
 
     };
+
+    let mut wtr = File::create(output_path).expect("Failed to open output file");
+    for row in csv_rows {
+        wtr.write_all(& row.into_bytes());
+    };
+    wtr.sync_data();
 
     Ok(true)
 }
