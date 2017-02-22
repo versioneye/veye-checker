@@ -1,5 +1,5 @@
 [package]
-name = "veye-checker"
+name = "veye_checker"
 version = "0.1.0"
 authors = ["timgluz <timgluz@gmail.com>"]
 
