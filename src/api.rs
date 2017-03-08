@@ -29,6 +29,29 @@ fn request_json(req_url: &str) -> Option<String> {
     Some(body)
 }
 
+pub fn fetch_product_details_by_sha(file_sha: &str, api_key: &str)
+    -> Result<product::ProductMatch, Error> {
+    println!("Going to checkup product by SHA: {}", file_sha);
+    let sha_res = fetch_product_by_sha(&file_sha, &api_key.clone());
+
+    match sha_res {
+        Ok(m) => {
+            println!("Going to check product details by matched SHA result");
+            let sha = m.sha.expect("No product sha from SHA result");
+            let product = m.product.expect("No product info from SHA result");
+            match fetch_product( &product.language, &product.prod_key, &product.version, &api_key ) {
+                Ok(mut m) => {
+                    m.sha = Some(sha);
+                    Ok(m)
+                },
+                Err(e) => Err(e)
+            }
+
+        },
+        Err(e) => Err(e)
+    }
+}
+
 pub fn fetch_product_by_sha(sha: &str, api_key: &str) -> Result<product::ProductMatch, io::Error> {
     let resource_url = format!("{}/products/sha/{}?api_key={}", API_URL, sha, api_key);
 
@@ -111,7 +134,7 @@ fn process_product_response(
         Some(arr) => arr.iter().fold(vec![], |mut acc, ref x| {
             acc.push(product::ProductLicense {
                 name: x["name"].as_string().unwrap().to_string(),
-                url: x["url"].as_string().unwrap().to_string()
+                url: x["url"].as_string().unwrap_or("").to_string()
             });
 
             acc
