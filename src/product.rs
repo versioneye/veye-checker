@@ -56,31 +56,37 @@ impl ProductMatch {
         }
     }
 
+    pub fn empty() -> ProductMatch {
+        ProductMatch {
+            sha: None,
+            product: None,
+            url: None,
+            licenses: vec![],
+            n_vulns: 0,
+            filepath: None
+        }
+    }
 }
 
 
-pub trait CSVSerializer {
-    fn to_csv_header(&self) -> String;
-    fn to_csv(&self) -> String;
+pub trait RowSerializer {
+    fn to_fields(&self) -> Vec<String>;
+    fn to_rows(&self) -> Vec<Vec<String>>;
 }
-
 
 //TODO: add header function
+impl RowSerializer for ProductMatch {
 
-impl CSVSerializer for ProductMatch {
-    fn to_csv_header(&self) -> String {
-        let headers = (
-            "filepath", "packaging", "sha_method", "sha_value", "language",
-            "prod_key", "version", "n_vulns", "product_url", "license"
-        );
-
-        let mut wtr = csv::Writer::from_memory();
-        wtr.encode(headers);
-        wtr.as_string().to_string()
+    fn to_fields(&self) -> Vec<String> {
+        vec![
+            "filepath".to_string(), "packaging".to_string(), "sha_method".to_string(),
+            "sha_value".to_string(), "language".to_string(), "prod_key".to_string(),
+            "version".to_string(), "n_vulns".to_string(), "product_url".to_string(),
+            "license".to_string()
+        ]
     }
 
-    fn to_csv(&self) -> String {
-
+    fn to_rows(&self) -> Vec<Vec<String>> {
         let mut csv_row: Vec<String> = vec![];
 
         csv_row.push(self.filepath.clone().unwrap_or("".to_string()));
@@ -117,15 +123,14 @@ impl CSVSerializer for ProductMatch {
         csv_row.push( self.n_vulns.clone().to_string() );
         csv_row.push( self.url.clone().unwrap_or("".to_string()) );
 
-
-        let mut wtr = csv::Writer::from_memory();
+        let mut rows = vec![];
         for lic in &self.licenses {
             let mut row = csv_row.to_vec();
             row.push(lic.name.clone().to_string());
-            wtr.encode(row);
+            rows.push(row)
         }
 
-        wtr.as_string().to_string()
+        rows
     }
 
 }

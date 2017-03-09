@@ -12,17 +12,10 @@ use std::error::Error;
 use std::rc::Rc;
 use std::borrow::Borrow;
 
-use veye_checker::{product, api, checker};
-use product::CSVSerializer;
+use veye_checker::io::{IOWriter, CSVWriter, StdOutWriter};
+use veye_checker::{product, api, checker, io};
+use product::RowSerializer;
 
-fn init_out_file(outfile_path: &Path) -> Result<bool, std::io::Error> {
-    //it creates a new file or truncates existing one
-    let mut f = File::create( outfile_path ).ok().expect("Failed to create output file");
-    try!(f.write_all(b"file_path,package_sha\n"));
-    try!(f.sync_all());
-
-    Ok(true)
-}
 
 fn show_usage(program_name: &str, opts: Options) -> Result<bool, String> {
     let brief = format!(r#"
@@ -30,9 +23,9 @@ fn show_usage(program_name: &str, opts: Options) -> Result<bool, String> {
             {} scan DIRECTORY_PATH -o OUTPUT_FILE
             {} lookup FILE_SHA -a API_TOKEN
             {} lookup_csv SHA_FILE_PATH -o OUTPUT_FILE -a API_TOKEN
-        "#,
-                        program_name, program_name, program_name
+        "#, program_name, program_name, program_name
     );
+
     print!("{}", opts.usage(&brief));
     Ok(true)
 }
@@ -84,22 +77,31 @@ fn do_scan_task(matches: &getopts::Matches) -> Result<bool, String> {
     } else {
         matches.free[1].clone()
     };
-    let outpath = matches.opt_str("o");
 
     println!("Scanning: {}", dir_txt);
     let dir = Path::new(&dir_txt);
+    let rows = match checker::scan_dir(dir, 0) {
+        Ok(vals) => vals,
+        Err(e)   => {
+            println!("Failed to scan folder {}", &dir_txt);
+            vec![]
+        }
+    };
 
-    if outpath.is_some() {
-        println!("Will dump results into file...");
-        let path_str = outpath.unwrap();
+    if let Some(outpath) = matches.opt_str("o") {
+        let path_str = outpath.clone();
         let out_dir =  Path::new(&path_str);
-        let res = init_out_file(&out_dir);
-        checker::scan_dir(dir, Some(&out_dir));
+        let wtr = io::CSVWriter::new(path_str.clone());
+
+        println!("Will dump results into file... {}", &path_str);
+        wtr.write_rows(rows.into_iter());
 
     } else {
         println!("No output file were defined");
-        checker::scan_dir(dir, None);
+        let wtr = io::StdOutWriter::new();
+        wtr.write_rows(rows.into_iter());
     }
+
     Ok(true)
 }
 
@@ -117,17 +119,22 @@ fn do_lookup_task(matches: &getopts::Matches) -> Result<bool, String> {
 
     match api::fetch_product_details_by_sha(&file_sha.clone(), &api_key) {
         Ok(m) => {
+            let mut rows = vec![];
+            rows.push(m.to_fields());
+            for r in m.to_rows() { rows.push(r); }
+
             if out_filepath.is_none() {
-                println!("{}{}", m.to_csv_header(), m.to_csv() )
+                let mut wtr = io::StdOutWriter::new();
+                wtr.write_rows(rows.into_iter());
+
             } else {
                 let out_fp = out_filepath.unwrap();
-                let mut wtr = File::create(out_fp).expect("Failed to open outout file");
-                wtr.write_all(& m.to_csv_header().into_bytes());
-                wtr.write_all(& m.to_csv().into_bytes());
-                wtr.sync_data();
+                let mut wtr = io::CSVWriter::new(out_fp.clone());
 
-                println!("Dumped result into specified file;");
+                wtr.write_rows( rows.into_iter() );
+                println!("Dumped result into {}", out_fp.clone());
             }
+
         },
         Err(e)  => println!("No product info for sha {}", file_sha)
     }
@@ -149,45 +156,34 @@ fn do_lookup_csv_task(matches: &getopts::Matches) -> Result<bool, String> {
         sha_results_filepath.clone()
     ).expect(format!("Failed to read SHA file from {}", sha_results_filepath).as_ref());
 
-    let mut csv_rows = vec![];
+    let mut csv_rows: Vec<Vec<String>> = vec![];
+    let product_headers = product::ProductMatch::empty().to_fields();
+    csv_rows.push(product_headers);
 
     for row in rdr.decode() {
 
         let (file_path, file_sha): (String, String) = row.unwrap();
-        match api::fetch_product_details_by_sha(&file_sha.clone(), &api_key){
+        let the_prod = match api::fetch_product_details_by_sha(&file_sha.clone(), &api_key){
             Ok(mut m) => {
                 m.filepath = Some(file_path.clone());
-                if csv_rows.len() == 0 {
-                    csv_rows.push(m.to_csv_header());
-                }
-
-                csv_rows.push(m.to_csv());
+                m
             },
             Err(e) => {
                 println!("Failed to get product details for {}, {}", file_path.clone(), file_sha.clone());
-                let empty_m = product::ProductMatch {
-                    sha: None,
-                    product: None,
-                    url: None,
-                    licenses: vec![],
-                    n_vulns: 0,
-                    filepath: Some(file_path.clone())
-                };
-
-                if csv_rows.len() == 0 {
-                    csv_rows.push(empty_m.to_csv_header());
-                }
-                csv_rows.push(empty_m.to_csv());
+                let mut empty_m = product::ProductMatch::empty();
+                empty_m.filepath = Some(file_path.clone());
+                empty_m
             }
-        }
+        };
+
+        for row in the_prod.to_rows() {
+            csv_rows.push(row);
+        };
 
     };
 
-    let mut wtr = File::create(output_path).expect("Failed to open output file");
-    for row in csv_rows {
-        wtr.write_all(& row.into_bytes());
-    };
-    wtr.sync_data();
+    let mut csv_writer = io::CSVWriter::new(output_path);
+    csv_writer.write_rows(csv_rows.into_iter());
 
     Ok(true)
 }

@@ -10,3 +10,4 @@ extern crate csv;
 pub mod api;
 pub mod product;
 pub mod checker;
+pub mod io;

@@ -50,7 +50,11 @@ fn dispatch_encoder(filepath: &Path) -> Option<String> {
     }
 }
 
-pub fn scan_dir(dir: &Path, outpath: Option<&Path> ) -> Result<bool, io::Error>  {
+pub fn scan_dir(dir: &Path, depth: u32) -> Result< Vec<Vec<String>>, io::Error>  {
+    let mut rows = vec![];
+    if depth == 0 {
+        rows.push(vec!["file_path".to_string(), "file_sha".to_string()]);
+    }
 
     if dir.is_dir() {
         for entry in try!(fs::read_dir(dir)) {
@@ -58,41 +62,23 @@ pub fn scan_dir(dir: &Path, outpath: Option<&Path> ) -> Result<bool, io::Error> 
             let path = entry.path();
 
             if path.is_dir() {
-                scan_dir(&path, outpath);
+                match scan_dir(&path, depth + 1){
+                    Ok(mut dir_rows) => rows.append(&mut dir_rows),
+                    Err(e) => println!("Failed to scan folder {:?}", path)
+                };
+
             } else if path.is_file() {
-                print_sha(&path, dispatch_encoder(&path), outpath);
+                //dont append files without sha
+                if let Some(file_sha) = dispatch_encoder(&path) {
+                    let file_name = path.to_str().unwrap_or("unknown_path").to_string();
+                    rows.push( vec![file_name, file_sha] )
+                }
+
             } else {
                 println!("Going to ignore {:?}", path.to_str());
             }
         }
     }
 
-    Ok(true)
-}
-
-fn print_sha(file_path: &Path, file_sha: Option<String>, outpath: Option<&Path>){
-
-    match file_sha {
-        Some(res) => {
-            if outpath.is_some() {
-                print_sha_file(&file_path, &res, &outpath.unwrap())
-            } else {
-                print_sha_screen(&file_path, &res)
-            }
-        },
-        None      => ()
-    }
-}
-
-fn print_sha_screen(file_path: &Path, file_sha: &str){
-    println!("{:?},{}", file_path, file_sha);
-}
-
-fn print_sha_file(file_path: &Path, file_sha: &str, outpath: &Path){
-    let mut f = OpenOptions::new().write(true).append(true).open(outpath).expect("Failed to open output file");
-        //.ok().expect("Failed to write line into output file");
-    let line = format!("{:?},{}\n", file_path, file_sha);
-    f.write_all( line.as_bytes() ).expect("Failed to write sha line to file");
-    f.sync_all().expect("Failed to sync buffer into output file");
-
+    Ok(rows)
 }

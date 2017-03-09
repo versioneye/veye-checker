@@ -108,6 +108,7 @@ fn process_sha_response(json_text: Option<String> ) -> Result<product::ProductMa
     Ok(product::ProductMatch::new(the_prod, the_sha))
 }
 
+// converts the response of product endpoint into ProductMatch struct
 fn process_product_response(
     json_text: Option<String>, prod_url: Option<String>
 ) -> Result<product::ProductMatch, io::Error> {
