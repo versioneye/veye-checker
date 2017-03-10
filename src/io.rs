@@ -2,13 +2,19 @@ extern crate csv;
 extern crate rustc_serialize;
 
 use std;
-use rustc_serialize::Encodable;
+use std::io::{Error, ErrorKind};
 use std::fmt::Debug;
+use std::path::{Path, PathBuf};
+use rustc_serialize::{Encodable, Decodable};
 
 
 pub trait IOWriter {
-    fn write_rows<I, T>(&self, rows: I) -> Result<u32, std::io::Error>
+    fn write_rows<I, T>(&self, rows: I) -> Result<u32, Error>
         where I: Iterator<Item=Vec<T>>, T: Encodable;
+}
+
+pub trait IOReader {
+    fn read_all(&self) -> Result< Vec<Vec<String>>, Error>;
 }
 
 //--STDOUTWriter
@@ -24,7 +30,7 @@ impl StdOutWriter {
 }
 
 impl IOWriter for StdOutWriter {
-    fn write_rows<I, T>(&self, rows: I) -> Result<u32, std::io::Error>
+    fn write_rows<I, T>(&self, rows: I) -> Result<u32, Error>
         where I:Iterator<Item=Vec<T>>, T:Encodable {
         let mut n = 0u32;
         let mut wtr = csv::Writer::from_memory();
@@ -40,17 +46,18 @@ impl IOWriter for StdOutWriter {
 
 //-- CSVWriter
 pub struct CSVWriter {
-    filepath: String
+    filepath: std::path::PathBuf
 }
 
 impl CSVWriter {
     pub fn new(the_path: String) -> CSVWriter {
-        CSVWriter {filepath: the_path }
+        CSVWriter {filepath: PathBuf::from(the_path.clone().as_str()) }
     }
 }
+
 impl IOWriter for CSVWriter {
 
-    fn write_rows<I, T>(&self, rows: I)  -> Result<u32, std::io::Error>
+    fn write_rows<I, T>(&self, rows: I)  -> Result<u32, Error>
         where I:Iterator<Item=Vec<T>>, T:Encodable {
 
         let mut n = 0u32;
@@ -58,7 +65,7 @@ impl IOWriter for CSVWriter {
         wtr.flush();
 
         for row in rows {
-            wtr.encode(row);
+            wtr.encode(row).unwrap();
             n += 1;
         }
 
@@ -66,4 +73,30 @@ impl IOWriter for CSVWriter {
     }
 }
 
+// CSVReader
+pub struct CSVReader {
+    filepath: std::path::PathBuf
+}
 
+impl CSVReader {
+    pub fn new(the_path: String) -> CSVReader {
+        CSVReader { filepath: PathBuf::from(the_path.clone().as_str()) }
+    }
+}
+
+impl IOReader for CSVReader {
+
+    fn read_all(&self) -> Result< Vec<Vec<String>>, Error> {
+
+        let mut rows: Vec<_> = vec![];
+        let mut rdr = csv::Reader::from_file(& self.filepath).expect("Failed to open CSV file for read");
+
+        for row in rdr.records() {
+            if let Some(items) = row.ok() {
+                rows.push(items)
+            }
+        };
+
+        Ok(rows)
+    }
+}
