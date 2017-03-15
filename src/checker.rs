@@ -16,7 +16,7 @@ fn encode_jar(filepath: &Path) -> String {
 
     let mut hasher = Sha1::new();
 
-    f.read_to_end(&mut buffer);
+    f.read_to_end(&mut buffer).unwrap();
     hasher.update(& buffer);
     hasher.digest().to_string()
 }
@@ -29,7 +29,7 @@ fn encode_nuget(filepath: &Path) -> String {
 
     let mut hasher = Sha512::new();
 
-    f.read_to_end(&mut buffer);
+    f.read_to_end(&mut buffer).unwrap();
     hasher.input(& buffer);
 
     encode(&hasher.result()).to_string()
@@ -64,7 +64,7 @@ pub fn scan_dir(dir: &Path, depth: u32) -> Result< Vec<Vec<String>>, io::Error> 
             if path.is_dir() {
                 match scan_dir(&path, depth + 1){
                     Ok(mut dir_rows) => rows.append(&mut dir_rows),
-                    Err(e) => println!("Failed to scan folder {:?}", path)
+                    Err(_) => println!("Failed to scan folder {:?}", path)
                 };
 
             } else if path.is_file() {

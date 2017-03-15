@@ -27,6 +27,13 @@ tries to fetch product info from the Versioneye API.
 veye_checker lookup_csv scan_results.csv -a <YOUR_API_KEY> -o res.csv
 ```
 
+## API keys
+
+TODO
+
+## Permanent configs
+
+TODO
 
 ## Build
 

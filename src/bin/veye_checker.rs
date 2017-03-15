@@ -3,10 +3,11 @@ extern crate veye_checker;
 
 use getopts::Options;
 use std::path::Path;
+use std::error::Error;
 use std::env;
 
 use veye_checker::io::{IOWriter, IOReader};
-use veye_checker::{product, api, checker, io};
+use veye_checker::{product, api, checker, io, configs};
 use product::RowSerializer;
 
 
@@ -101,15 +102,24 @@ fn do_lookup_task(matches: &getopts::Matches) -> Result<bool, String> {
 
     let file_sha = if matches.free.len() != 2 {
         panic!("lookup command misses SHA-code");
-
     } else {
         matches.free[1].clone()
     };
 
-    let api_key = matches.opt_str("a").expect("Missing API_KEY!");
-    let out_filepath = matches.opt_str("o");
+    let mut global_configs = configs::read_configs();
+    //override global configs when use attached commandline key
+    if global_configs.api.key.is_none() && matches.opt_str("a").is_some() {
+        global_configs.api.key = matches.opt_str("a")
+    };
 
-    match api::fetch_product_details_by_sha(&file_sha.clone(), &api_key) {
+    if global_configs.api.key.is_none() {
+        panic!(
+            "Missing API key: SET env var VERSIONEYE_API_KEY, or use -a param, or use veye_checker.toml"
+        );
+    };
+
+    let out_filepath = matches.opt_str("o");
+    match api::fetch_product_details_by_sha(&global_configs.api, &file_sha.clone()) {
         Ok(m) => {
             let mut rows = vec![];
             rows.push(m.to_fields());
@@ -128,7 +138,7 @@ fn do_lookup_task(matches: &getopts::Matches) -> Result<bool, String> {
             }
 
         },
-        Err(_)  => println!("No product info for sha {}", file_sha)
+        Err(e)  => println!("No product info for sha {} - {}", file_sha, e.description())
     }
 
     Ok(true)
@@ -141,19 +151,27 @@ fn do_lookup_csv_task(matches: &getopts::Matches) -> Result<bool, String> {
         matches.free[1].clone()
     };
 
-    let api_key = matches.opt_str("a").expect("Missing API_KEY!");
+    let mut  global_configs = configs::read_configs();
+    //override global configs when use attached commandline key
+    if global_configs.api.key.is_none() && matches.opt_str("a").is_some() {
+        global_configs.api.key = matches.opt_str("a")
+    };
+    if global_configs.api.key.is_none() {
+        panic!(
+            "Missing API key: SET env var VERSIONEYE_API_KEY, or use -a param, or use veye_checker.toml"
+        );
+    };
+
     let output_path = matches.opt_str("o").expect("Missing output file");
-
     let rdr = io::CSVReader::new( sha_results_filepath );
-
     let mut csv_rows: Vec<Vec<String>> = vec![];
     let product_headers = product::ProductMatch::empty().to_fields();
-    csv_rows.push(product_headers);
 
+    csv_rows.push(product_headers);
     for row in rdr.read_all().expect("Failed to read sha file") {
         let (file_path, file_sha) = (&row[0], &row[1]);
 
-        let the_prod = match api::fetch_product_details_by_sha(&file_sha.clone(), &api_key){
+        let the_prod = match api::fetch_product_details_by_sha(&global_configs.api, &file_sha.clone()) {
             Ok(mut m) => {
                 m.filepath = Some(file_path.clone());
                 m

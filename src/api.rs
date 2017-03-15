@@ -2,44 +2,65 @@ use std::io::{self, Read, Error, ErrorKind};
 
 use hyper;
 use hyper::{ Client, Url };
-use hyper::client::Response;
 use hyper::net::HttpsConnector;
 use hyper_native_tls::NativeTlsClient;
 use std::time::Duration;
-
 use rustc_serialize::json::{self, ToJson, Json};
 use product;
+use configs::ApiConfigs;
 
-const API_URL: &'static str = "https://www.versioneye.com/api/v2";
 const HOST_URL: &'static str = "https://www.versioneye.com";
 
-fn request_json(req_url: &str) -> Option<String> {
+fn to_product_url(lang: &str, prod_key: &str, version: &str) -> String {
+    format!("{}/{}/{}/{}", HOST_URL, lang, prod_key, version)
+}
 
-    let uri = Url::parse(req_url).ok().expect("malformed url");
+fn configs_to_url(api_confs: &ApiConfigs, resource_path: &str)
+    -> Result<hyper::Url, hyper::error::ParseError> {
+    let url_str = match api_confs.port {
+        None => {
+            format!(
+                "{}://{}/{}/{}",
+                api_confs.scheme.clone().unwrap(), api_confs.host.clone().unwrap(),
+                api_confs.path.clone().unwrap(), resource_path,
+            )
+
+        },
+        Some(port) => format!(
+            "{}://{}:{}/{}/{}",
+            api_confs.scheme.clone().unwrap(), api_confs.host.clone().unwrap(),
+            api_confs.port.clone().unwrap(), api_confs.path.clone().unwrap(),
+            resource_path
+        )
+    };
+
+    Url::parse(url_str.as_str())
+}
+
+fn request_json(uri: &Url) -> Option<String> {
     let ssl = NativeTlsClient::new().unwrap();
     let connector = HttpsConnector::new(ssl);
     let mut client = Client::with_connector(connector);
     client.set_read_timeout(Some(Duration::new(5,0)));
 
-    let mut res = client.get(uri).send().expect("Failed to fetch results from the url");
-
+    //todo: refactor so it returns Results<String, Error>
+    let mut res = client.get(uri.as_str()).send().expect("Failed to fetch results from the url");
     let mut body = String::new();
     res.read_to_string(&mut body).expect("Failed to read response body");
 
     Some(body)
 }
 
-pub fn fetch_product_details_by_sha(file_sha: &str, api_key: &str)
+pub fn fetch_product_details_by_sha(api_confs: &ApiConfigs, file_sha: &str)
     -> Result<product::ProductMatch, Error> {
     println!("Going to checkup product by SHA: {}", file_sha);
-    let sha_res = fetch_product_by_sha(&file_sha, &api_key.clone());
 
+    let sha_res = fetch_product_by_sha(&api_confs, &file_sha);
     match sha_res {
         Ok(m) => {
-            println!("Going to check product details by matched SHA result");
             let sha = m.sha.expect("No product sha from SHA result");
             let product = m.product.expect("No product info from SHA result");
-            match fetch_product( &product.language, &product.prod_key, &product.version, &api_key ) {
+            match fetch_product( &api_confs, &product.language, &product.prod_key, &product.version ) {
                 Ok(mut m) => {
                     m.sha = Some(sha);
                     Ok(m)
@@ -52,25 +73,59 @@ pub fn fetch_product_details_by_sha(file_sha: &str, api_key: &str)
     }
 }
 
-pub fn fetch_product_by_sha(sha: &str, api_key: &str) -> Result<product::ProductMatch, io::Error> {
-    let resource_url = format!("{}/products/sha/{}?api_key={}", API_URL, sha, api_key);
+pub fn fetch_product_by_sha(api_confs: &ApiConfigs, sha: &str)
+    -> Result<product::ProductMatch, io::Error> {
+    let resource_path = format!("products/sha/{}", sha.clone() );
+    let mut resource_url = match configs_to_url(api_confs, resource_path.as_str()) {
+        Ok(the_url) => the_url,
+        Err(e)      => {
+            return Err(
+                Error::new(
+                    ErrorKind::InvalidData,
+                    "The values of API configs make up non-valid URL"
+                )
+            )
+        }
+    };
 
+    //attach query params
+    resource_url
+        .query_pairs_mut()
+        .clear()
+        .append_pair("api_key", api_confs.key.clone().unwrap().as_str());
+
+    println!("Fetching product info by sha...");
     let json_txt = request_json( &resource_url );
-    println!("Processing sha response....");
     process_sha_response(json_txt)
 }
 
 pub fn fetch_product(
-    lang: &str, prod_key: &str, version: &str, api_key: &str
+    api_confs: &ApiConfigs, lang: &str, prod_key: &str, version: &str
 ) -> Result<product::ProductMatch, io::Error> {
 
     let prod_key = str::replace(prod_key, "/", ":");
     let prod_key = str::replace(&prod_key, ".", "~");
-    let resource_url = format!(
-        "{}/products/{}/{}?prod_version={}&api_key={}",
-        API_URL, lang, prod_key, version, api_key
-    );
-    let prod_url = format!("{}/{}/{}/{}", HOST_URL, lang, prod_key, version);
+    let resource_path = format!("products/{}/{}", lang, prod_key.clone());
+    let prod_url = to_product_url(lang, prod_key.as_str(), version);
+
+    let mut resource_url = match configs_to_url(api_confs, resource_path.as_str()) {
+        Ok(the_url) => the_url,
+        Err(e)      => {
+            return Err(
+                Error::new(
+                    ErrorKind::InvalidData,
+                    "The values of API configs make up non-valid URL"
+                )
+            )
+        }
+    };
+
+    //attach query params
+    resource_url
+        .query_pairs_mut()
+        .clear()
+        .append_pair("prod_version", version)
+        .append_pair("api_key", api_confs.key.clone().unwrap().as_str());
 
     let json_txt = request_json( &resource_url );
     process_product_response(json_txt, Some(prod_url))

@@ -3,9 +3,8 @@ extern crate rustc_serialize;
 
 use std;
 use std::io::{Error, ErrorKind};
-use std::fmt::Debug;
-use std::path::{Path, PathBuf};
-use rustc_serialize::{Encodable, Decodable};
+use std::path::{PathBuf};
+use rustc_serialize::{Encodable};
 
 
 pub trait IOWriter {
@@ -35,7 +34,7 @@ impl IOWriter for StdOutWriter {
         let mut n = 0u32;
         let mut wtr = csv::Writer::from_memory();
         for row in rows {
-            wtr.encode(row);
+            wtr.encode(row).unwrap();
             n += 1;
         }
 
@@ -62,7 +61,7 @@ impl IOWriter for CSVWriter {
 
         let mut n = 0u32;
         let mut wtr = csv::Writer::from_file(&self.filepath).expect("Failed to open output file");
-        wtr.flush();
+        wtr.flush().expect("Failed to flush CSVWriter");
 
         for row in rows {
             wtr.encode(row).unwrap();
