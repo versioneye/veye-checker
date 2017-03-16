@@ -3,7 +3,8 @@ use std::io::{self, Read, Error, ErrorKind};
 use hyper;
 use hyper::{ Client, Url };
 use hyper::net::HttpsConnector;
-use hyper_native_tls::NativeTlsClient;
+use hyper::net::SslClient;
+use hyper_rustls;
 use std::time::Duration;
 use rustc_serialize::json::Json;
 use product;
@@ -37,7 +38,7 @@ fn configs_to_url(api_confs: &ApiConfigs, resource_path: &str)
 }
 
 fn request_json(uri: &Url) -> Option<String> {
-    let ssl = NativeTlsClient::new().unwrap();
+    let ssl = hyper_rustls::TlsClient::new();
     let connector = HttpsConnector::new(ssl);
     let mut client = Client::with_connector(connector);
     client.set_read_timeout(Some(Duration::new(5,0)));
