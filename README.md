@@ -13,7 +13,8 @@ One can use this utility to lookup package version details, license, vulnerabili
 Download binaries from the [releases] and save into your binaries folder
 
 ```
-curl LATEST_RELEASE_URL --output "$(HOME)/bin"
+curl https://github.com/versioneye/veye-checker/releases/download/v0.1.0-RC1/veye_checker \ 
+ --output "$(HOME)/bin"
 ```
 
 * **scan** - scans the target folder recursively and outputs digests of supported packagefiles:
