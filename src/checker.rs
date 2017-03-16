@@ -6,7 +6,6 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::io;
 use std::fs::{self, File};
-use std::fs::OpenOptions;
 
 fn encode_jar(filepath: &Path) -> String {
     //println!("Going to read jar file from {:?}", filepath);

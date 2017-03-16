@@ -5,7 +5,7 @@ use hyper::{ Client, Url };
 use hyper::net::HttpsConnector;
 use hyper_native_tls::NativeTlsClient;
 use std::time::Duration;
-use rustc_serialize::json::{self, ToJson, Json};
+use rustc_serialize::json::Json;
 use product;
 use configs::ApiConfigs;
 
@@ -29,8 +29,7 @@ fn configs_to_url(api_confs: &ApiConfigs, resource_path: &str)
         Some(port) => format!(
             "{}://{}:{}/{}/{}",
             api_confs.scheme.clone().unwrap(), api_confs.host.clone().unwrap(),
-            api_confs.port.clone().unwrap(), api_confs.path.clone().unwrap(),
-            resource_path
+            port, api_confs.path.clone().unwrap(), resource_path
         )
     };
 
@@ -78,7 +77,7 @@ pub fn fetch_product_by_sha(api_confs: &ApiConfigs, sha: &str)
     let resource_path = format!("products/sha/{}", sha.clone() );
     let mut resource_url = match configs_to_url(api_confs, resource_path.as_str()) {
         Ok(the_url) => the_url,
-        Err(e)      => {
+        Err(_)      => {
             return Err(
                 Error::new(
                     ErrorKind::InvalidData,
@@ -110,7 +109,7 @@ pub fn fetch_product(
 
     let mut resource_url = match configs_to_url(api_confs, resource_path.as_str()) {
         Ok(the_url) => the_url,
-        Err(e)      => {
+        Err(_)      => {
             return Err(
                 Error::new(
                     ErrorKind::InvalidData,

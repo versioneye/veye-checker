@@ -2,9 +2,9 @@ extern crate csv;
 extern crate rustc_serialize;
 
 use std;
-use std::io::{Error, ErrorKind};
-use std::path::{PathBuf};
-use rustc_serialize::{Encodable};
+use std::io::Error;
+use std::path::PathBuf;
+use rustc_serialize::Encodable;
 
 
 pub trait IOWriter {
@@ -17,7 +17,6 @@ pub trait IOReader {
 }
 
 //--STDOUTWriter
-
 pub struct StdOutWriter {
 
 }
