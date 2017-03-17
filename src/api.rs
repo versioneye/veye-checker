@@ -3,7 +3,6 @@ use std::io::{self, Read, Error, ErrorKind};
 use hyper;
 use hyper::{ Client, Url };
 use hyper::net::HttpsConnector;
-use hyper::net::SslClient;
 use hyper_rustls;
 use std::time::Duration;
 use rustc_serialize::json::Json;
@@ -99,14 +98,22 @@ pub fn fetch_product_by_sha(api_confs: &ApiConfigs, sha: &str)
     process_sha_response(json_txt)
 }
 
-pub fn fetch_product(
+pub fn encode_prod_key<'b>( prod_key: &'b str) -> String {
+    let mut encoded_prod_key = prod_key.to_string();
+    encoded_prod_key
+        .replace(".", "~")
+        .replace("/", ":")
+        .trim().to_string()
+
+}
+
+pub fn fetch_product<'a>(
     api_confs: &ApiConfigs, lang: &str, prod_key: &str, version: &str
 ) -> Result<product::ProductMatch, io::Error> {
 
-    let prod_key = str::replace(prod_key, "/", ":");
-    let prod_key = str::replace(&prod_key, ".", "~");
-    let resource_path = format!("products/{}/{}", lang, prod_key.clone());
-    let prod_url = to_product_url(lang, prod_key.as_str(), version);
+    let encoded_prod_key = encode_prod_key(&prod_key);
+    let resource_path = format!("products/{}/{}", lang, encoded_prod_key.clone());
+    let prod_url = to_product_url(lang, encoded_prod_key.clone().as_str(), version);
 
     let mut resource_url = match configs_to_url(api_confs, resource_path.as_str()) {
         Ok(the_url) => the_url,
@@ -133,6 +140,7 @@ pub fn fetch_product(
 
 
 //-- helper functions
+//TODO: is json_obj is object and has key error -> return error message from API
 fn process_sha_response(json_text: Option<String> ) -> Result<product::ProductMatch, io::Error> {
     let json_text = json_text.expect("process_sha_response: got null json text");
     let json_obj = Json::from_str( &json_text).expect("Failed to parse product JSON");
@@ -164,6 +172,7 @@ fn process_sha_response(json_text: Option<String> ) -> Result<product::ProductMa
 }
 
 // converts the response of product endpoint into ProductMatch struct
+//TODO: return ERROR message from API
 fn process_product_response(
     json_text: Option<String>, prod_url: Option<String>
 ) -> Result<product::ProductMatch, io::Error> {
@@ -172,7 +181,7 @@ fn process_product_response(
     let json_obj = Json::from_str( &json_text).expect("Failed to parse product JSON");
 
     if !json_obj.is_object() {
-        return Err(Error::new(ErrorKind::Other, "Response had new product details"));
+        return Err(Error::new(ErrorKind::Other, "Response had no product details"));
     }
 
     let product_doc = json_obj.as_object().expect("Failed to fetch product document");

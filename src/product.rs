@@ -35,8 +35,6 @@ pub struct ProductMatch {
     pub filepath: Option<String>
 }
 
-
-
 impl ProductMatch {
 
     pub fn new(product: Product, sha: ProductSHA) -> ProductMatch {
