@@ -13,7 +13,7 @@ One can use this utility to lookup package version details, license, vulnerabili
 Download binaries from the [releases] and save into your binaries folder
 
 ```
-curl -s -L -o "${HOME}/bin/veye_checker"  https://github.com/versioneye/veye-checker/releases/download/v0.1.0-RC1/veye_checker.Osx
+curl -s -L -o "${HOME}/bin/veye_checker"  https://github.com/versioneye/veye-checker/releases/download/v0.1.0-RC1/veye_checker_osx
 
 chmod a+x ~/bin/veye_checker
 ```
