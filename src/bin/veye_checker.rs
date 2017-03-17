@@ -162,7 +162,7 @@ fn do_lookup_csv_task(matches: &getopts::Matches) -> Result<bool, String> {
         );
     };
 
-    let output_path = matches.opt_str("o").expect("Missing output file");
+
     let rdr = io::CSVReader::new( sha_results_filepath );
     let mut csv_rows: Vec<Vec<String>> = vec![];
     let product_headers = product::ProductMatch::empty().to_fields();
@@ -176,8 +176,12 @@ fn do_lookup_csv_task(matches: &getopts::Matches) -> Result<bool, String> {
                 m.filepath = Some(file_path.clone());
                 m
             },
-            Err(_) => {
-                println!("Failed to get product details for {}, {}", file_path.clone(), file_sha.clone());
+            Err(e) => {
+                println!(
+                    "Failed to get product details for {}, {} - {}",
+                    file_path.clone(), file_sha.clone(), e.description()
+                );
+
                 let mut empty_m = product::ProductMatch::empty();
                 empty_m.filepath = Some(file_path.clone());
                 empty_m
@@ -190,8 +194,14 @@ fn do_lookup_csv_task(matches: &getopts::Matches) -> Result<bool, String> {
 
     };
 
-    let csv_writer = io::CSVWriter::new(output_path);
-    csv_writer.write_rows(csv_rows.into_iter()).unwrap();
+    if let Some(output_path) = matches.opt_str("o") {
+        let csv_writer = io::CSVWriter::new(output_path);
+        csv_writer.write_rows(csv_rows.into_iter()).unwrap();
+    } else {
+        let io_writer = io::StdOutWriter::new();
+        io_writer.write_rows(csv_rows.into_iter()).unwrap();
+    }
+
 
     Ok(true)
 }

@@ -145,6 +145,16 @@ fn process_sha_response(json_text: Option<String> ) -> Result<product::ProductMa
     let json_text = json_text.expect("process_sha_response: got null json text");
     let json_obj = Json::from_str( &json_text).expect("Failed to parse product JSON");
 
+    //if response includes error field in HTTP200 response
+    if let Some(error_val) = json_obj.find("error") {
+        return Err(
+            Error::new(
+                ErrorKind::Other,
+                format!("Failed to process sha response: {}", error_val.as_string().unwrap())
+            )
+        )
+    }
+
     if !json_obj.is_array() {
         return Err(Error::new( ErrorKind::Other, "Product response wasnt array"));
     }
@@ -184,9 +194,17 @@ fn process_product_response(
         return Err(Error::new(ErrorKind::Other, "Response had no product details"));
     }
 
+    //if response includes error field in HTTP200 response
+    if let Some(error_val) = json_obj.find("error") {
+        return Err(
+            Error::new(
+                ErrorKind::Other,
+                format!("Failed to process product response: {}", error_val.as_string().unwrap())
+            )
+        )
+    }
+
     let product_doc = json_obj.as_object().expect("Failed to fetch product document");
-
-
     let the_prod = product::Product {
         name: product_doc["name"].as_string().unwrap().to_string(),
         language: product_doc["language"].as_string().unwrap().to_string(),
