@@ -3,7 +3,7 @@
 
 [![Join the chat at Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/veye_checker/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
 
-It's a command-line util that scans packaged binaries (`*.nupkg, *.Jar, *.tar.gz`) and resolves their SHA digest values into package information.
+It's a command-line util that scans packaged binaries (`*.nupkg, *.Jar`) and resolves their SHA digest values into package information.
 
 One can use this utility to lookup package version details, license, vulnerability details or automate due diligence process without installing any runtime or additional dependencies.
  
@@ -13,7 +13,7 @@ One can use this utility to lookup package version details, license, vulnerabili
 Download binaries from the [releases] and save into your binaries folder
 
 ```
-curl -s -L -o "${HOME}/bin/veye_checker"  https://github.com/versioneye/veye-checker/releases/download/v0.1.0-RC1/veye_checker.Osx
+curl -s -L -o "${HOME}/bin/veye_checker"  https://github.com/versioneye/veye-checker/releases/download/v0.1.0-RC1/veye_checker_osx
 
 chmod a+x ~/bin/veye_checker
 ```
