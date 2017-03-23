@@ -15,8 +15,10 @@ pub struct Product {
 pub struct ProductSHA {
     pub packaging: String,
     pub method: String,
-    pub value: String
+    pub value: String,
+    pub filepath: Option<String>
 }
+
 
 #[derive(RustcDecodable, RustcEncodable)]
 pub struct ProductLicense {
@@ -72,7 +74,30 @@ pub trait RowSerializer {
     fn to_rows(&self) -> Vec<Vec<String>>;
 }
 
-//TODO: add header function
+impl RowSerializer for ProductSHA {
+    fn to_fields(&self) -> Vec<String> {
+      vec![
+          "filepath".to_string(), "packaging".to_string(),
+          "sha_method".to_string(), "sha_value".to_string()
+      ]
+    }
+
+    fn to_rows(&self) -> Vec<Vec<String>> {
+        let filepath = match self.filepath.clone() {
+            Some(path) => path,
+            None => "".to_string()
+        };
+
+        let mut csv_row = vec![
+            filepath, self.packaging.clone(),
+            self.method.clone(), self.value.clone()
+        ];
+
+
+        vec![csv_row]
+    }
+}
+
 impl RowSerializer for ProductMatch {
 
     fn to_fields(&self) -> Vec<String> {
@@ -87,17 +112,18 @@ impl RowSerializer for ProductMatch {
     fn to_rows(&self) -> Vec<Vec<String>> {
         let mut csv_row: Vec<String> = vec![];
 
-        csv_row.push(self.filepath.clone().unwrap_or("".to_string()));
+        //csv_row.push(self.filepath.clone().unwrap_or("".to_string()));
 
         csv_row = match self.sha.clone() {
             Some(x) => {
-                csv_row.push(x.packaging);
-                csv_row.push(x.method);
-                csv_row.push(x.value);
+                let mut sha_rows = x.to_rows().pop().unwrap();
+                csv_row.append(&mut sha_rows);
                 csv_row
             },
             None   => {
-                let mut emp_row = vec!["".to_string(), "".to_string(), "".to_string()];
+                let mut emp_row = vec![
+                    "".to_string(), "".to_string(), "".to_string(), "".to_string()
+                ];
                 csv_row.append(&mut emp_row);
                 csv_row
             }

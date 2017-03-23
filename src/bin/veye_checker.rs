@@ -75,7 +75,7 @@ fn do_scan_task(matches: &getopts::Matches) -> Result<bool, String> {
     println!("Scanning: {}", dir_txt);
     let dir = Path::new(&dir_txt);
     let rows = match checker::scan_dir(dir, 0) {
-        Ok(vals) => vals,
+        Ok(vals) => vals.into_iter().flat_map(|x| x.to_rows() ).collect(),
         Err(_)   => {
             println!("Failed to scan folder {}", &dir_txt);
             vec![]

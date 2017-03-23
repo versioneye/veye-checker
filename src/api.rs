@@ -175,7 +175,8 @@ fn process_sha_response(json_text: Option<String> ) -> Result<product::ProductMa
     let the_sha = product::ProductSHA {
         packaging: product_doc["packaging"].as_string().expect("No field `packaging`").to_string(),
         method: product_doc["sha_method"].as_string().expect("No field `sha_method`").to_string(),
-        value: product_doc["sha_value"].as_string().expect("No field `sha_value`").to_string()
+        value: product_doc["sha_value"].as_string().expect("No field `sha_value`").to_string(),
+        filepath: None
     };
 
     Ok(product::ProductMatch::new(the_prod, the_sha))

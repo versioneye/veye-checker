@@ -7,9 +7,9 @@ use std::path::Path;
 use std::io;
 use std::fs::{self, File};
 
-fn encode_jar(filepath: &Path) -> String {
-    //println!("Going to read jar file from {:?}", filepath);
+use product::ProductSHA;
 
+fn encode_jar(filepath: &Path) -> ProductSHA {
     let mut f = File::open(filepath).ok().expect("Failed to read file");
     let mut buffer = Vec::new();
 
@@ -17,26 +17,36 @@ fn encode_jar(filepath: &Path) -> String {
 
     f.read_to_end(&mut buffer).unwrap();
     hasher.update(& buffer);
-    hasher.digest().to_string()
+    let sha_val = hasher.digest().to_string();
+
+    ProductSHA {
+        packaging: "jar".to_string(),
+        method: "sha1".to_string(),
+        value: sha_val,
+        filepath: Some(filepath.to_str().unwrap_or("").to_string())
+    }
 }
 
-fn encode_nuget(filepath: &Path) -> String {
-    //println!("Going to read nupkg file from {:?}", filepath);
-
+fn encode_nuget(filepath: &Path) -> ProductSHA {
     let mut f = File::open(filepath).ok().expect("Failed to read file");
     let mut buffer = Vec::new();
-
     let mut hasher = Sha512::new();
 
     f.read_to_end(&mut buffer).unwrap();
     hasher.input(& buffer);
 
-    encode(&hasher.result()).to_string()
+    let sha_val = encode(&hasher.result()).to_string();
+    ProductSHA {
+        packaging: "nupkg".to_string(),
+        method: "sha512".to_string(),
+        value: sha_val,
+        filepath: Some(filepath.to_str().unwrap_or("").to_string())
+    }
 }
 
 // founds the right encoder based on the filepath
 // returns None when filetype is unsupported
-fn dispatch_encoder(filepath: &Path) -> Option<String> {
+fn dispatch_encoder(filepath: &Path) -> Option<ProductSHA> {
     let opt_ext = filepath.extension();
     if opt_ext.is_none() { return None; } //when hidden file or file has no extensions
 
@@ -49,11 +59,8 @@ fn dispatch_encoder(filepath: &Path) -> Option<String> {
     }
 }
 
-pub fn scan_dir(dir: &Path, depth: u32) -> Result< Vec<Vec<String>>, io::Error>  {
+pub fn scan_dir(dir: &Path, depth: u32) -> Result< Vec<ProductSHA>, io::Error>  {
     let mut rows = vec![];
-    if depth == 0 {
-        rows.push(vec!["file_path".to_string(), "file_sha".to_string()]);
-    }
 
     if dir.is_dir() {
         for entry in try!(fs::read_dir(dir)) {
@@ -68,9 +75,8 @@ pub fn scan_dir(dir: &Path, depth: u32) -> Result< Vec<Vec<String>>, io::Error> 
 
             } else if path.is_file() {
                 //dont append files without sha
-                if let Some(file_sha) = dispatch_encoder(&path) {
-                    let file_name = path.to_str().unwrap_or("unknown_path").to_string();
-                    rows.push( vec![file_name, file_sha] )
+                if let Some(prod_sha) = dispatch_encoder(&path) {
+                    rows.push( prod_sha )
                 }
 
             } else {
