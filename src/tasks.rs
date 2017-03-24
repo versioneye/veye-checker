@@ -20,10 +20,29 @@ pub fn start_path_scanner(dir_path: PathBuf)
     let handle = thread::spawn(move || {
         if let Some(shas) = checker::scan_dir(&dir_path, 0).ok() {
             for sha in shas.into_iter() {
-                if sender.send(sha).is_err(){
+                if sender.send(sha).is_err() {
                     println!("start_path_scanner: failed send ProductSHA");
                     break
                 }
+            }
+        }
+
+        Ok(())
+    });
+
+    (receiver, handle)
+}
+
+//pumps vector of SHAs onto sha channel
+pub fn start_sha_publisher(shas: Vec<ProductSHA>)
+    -> (Receiver<ProductSHA>, thread::JoinHandle<Result<(), io::Error>>) {
+
+    let (sender, receiver) = channel::<ProductSHA>();
+    let handle = thread::spawn(move || {
+        for sha in shas.into_iter() {
+            if sender.send(sha).is_err() {
+                println!("start_sha_publisher: failed to send ProductSHAs");
+                break
             }
         }
 

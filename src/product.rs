@@ -22,6 +22,17 @@ pub struct ProductSHA {
     pub filepath: Option<String>
 }
 
+impl ProductSHA {
+    pub fn from_sha(sha_value: String) -> ProductSHA {
+        ProductSHA {
+            packaging: "".to_string(),
+            method: "".to_string(),
+            value: sha_value,
+            filepath: None
+        }
+    }
+}
+
 
 #[derive(RustcDecodable, RustcEncodable)]
 pub struct ProductLicense {

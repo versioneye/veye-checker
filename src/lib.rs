@@ -17,7 +17,6 @@ extern crate serde_derive;
 pub mod api;
 pub mod product;
 pub mod checker;
-pub mod io;
 pub mod configs;
 
 pub mod tasks;

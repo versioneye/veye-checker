@@ -6,8 +6,7 @@ use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::env;
 
-use veye_checker::io::{IOWriter, IOReader};
-use veye_checker::{product, api, checker, io, configs, tasks};
+use veye_checker::{product, api, checker, configs, tasks};
 use product::RowSerializer;
 
 
@@ -121,8 +120,8 @@ fn do_shas_task(matches: &getopts::Matches) -> Result<bool, String> {
 
     };
 
-    h1.join().expect("shas_task: failed to scan file digests");
-    h2.join().expect("shas_task: failed to print results into output");
+    h1.join().expect("shas: failed to scan file digests");
+    h2.join().expect("shas: failed to print results into output");
 
     Ok(true)
 }
@@ -136,7 +135,7 @@ fn do_lookup_task(matches: &getopts::Matches) -> Result<bool, String> {
     };
 
     let mut global_configs = configs::read_configs();
-    //override global configs when use attached commandline key
+    //override api key when it was specified via -a flag
     if global_configs.api.key.is_none() && matches.opt_str("a").is_some() {
         global_configs.api.key = matches.opt_str("a")
     };
@@ -147,28 +146,22 @@ fn do_lookup_task(matches: &getopts::Matches) -> Result<bool, String> {
         );
     };
 
-    let out_filepath = matches.opt_str("o");
-    match api::fetch_product_details_by_sha(&global_configs.api, &file_sha.clone()) {
-        Ok(m) => {
-            let mut rows = vec![];
-            rows.push(m.to_fields());
-            for r in m.to_rows() { rows.push(r); }
-
-            if out_filepath.is_none() {
-                let wtr = io::StdOutWriter::new();
-                wtr.write_rows(rows.into_iter()).iter();
-
-            } else {
-                let out_fp = out_filepath.unwrap();
-                let wtr = io::CSVWriter::new(out_fp.clone());
-
-                wtr.write_rows( rows.into_iter() ).unwrap();
-                println!("Dumped result into {}", out_fp.clone());
-            }
-
+    let shas = vec![
+        product::ProductSHA::from_sha(file_sha.clone().to_string())
+    ];
+    let (sha_ch, h1) = tasks::start_sha_publisher(shas);
+    let (prod_ch, h2) = tasks::start_sha_fetcher(global_configs.api.clone(), sha_ch);
+    let h3 = match matches.opt_str("o") {
+        Some(outfile_path) => {
+            let outpath = PathBuf::from(&outfile_path);
+            tasks::start_product_csv_writer(outpath, prod_ch)
         },
-        Err(e)  => println!("No product info for sha {} - {}", file_sha, e.description())
-    }
+        None => tasks::start_product_stdio_writer(prod_ch)
+    };
+
+    h1.join().expect("lookup: failed to prepare sha value for request");
+    h2.join().expect("lookup: failed to fetch product details by sha value");
+    h3.join().expect("lookup: failed to output product details");
 
     Ok(true)
 }
