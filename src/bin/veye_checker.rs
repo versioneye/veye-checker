@@ -2,13 +2,10 @@ extern crate getopts;
 extern crate veye_checker;
 
 use getopts::Options;
-use std::path::{Path, PathBuf};
-use std::error::Error;
+use std::path::PathBuf;
 use std::env;
 
-use veye_checker::{product, api, checker, configs, tasks};
-use product::RowSerializer;
-
+use veye_checker::{product, configs, tasks};
 
 fn show_usage(program_name: &str, opts: Options) -> Result<bool, String> {
     let brief = format!(r#"

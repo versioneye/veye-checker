@@ -46,19 +46,6 @@ fn encode_nuget(filepath: &Path) -> ProductSHA {
 
 // founds the right encoder based on the filepath
 // returns None when filetype is unsupported
-fn dispatch_encoder(filepath: &Path) -> Option<ProductSHA> {
-    let opt_ext = filepath.extension();
-    if opt_ext.is_none() { return None; } //when hidden file or file has no extensions
-
-    let file_ext = opt_ext.unwrap().to_str().unwrap_or("");
-
-    match file_ext {
-        "nupkg" => Some(encode_nuget(filepath)),
-        "jar"   => Some(encode_jar(filepath)),
-        _       => None
-    }
-}
-
 pub fn digest_file(filepath: &Path) -> Option<ProductSHA> {
     if filepath.is_dir(){ return None; }
 
@@ -74,33 +61,5 @@ pub fn digest_file(filepath: &Path) -> Option<ProductSHA> {
     }
 }
 
-pub fn scan_dir(dir: &Path, depth: u32) -> Result< Vec<ProductSHA>, io::Error>  {
-    let mut rows = vec![];
-
-    if dir.is_dir() {
-        for entry in try!(fs::read_dir(dir)) {
-            let entry = try!(entry);
-            let path = entry.path();
-
-            if path.is_dir() {
-                match scan_dir(&path, depth + 1){
-                    Ok(mut dir_rows) => rows.append(&mut dir_rows),
-                    Err(_) => println!("Failed to scan folder {:?}", path)
-                };
-
-            } else if path.is_file() {
-                //dont append files without sha
-                if let Some(prod_sha) = dispatch_encoder(&path) {
-                    rows.push( prod_sha )
-                }
-
-            } else {
-                println!("Going to ignore {:?}", path.to_str());
-            }
-        }
-    }
-
-    Ok(rows)
-}
 
 
