@@ -9,6 +9,7 @@ extern crate csv;
 extern crate regex;
 extern crate serde;
 extern crate toml;
+extern crate walkdir;
 
 #[macro_use]
 extern crate serde_derive;

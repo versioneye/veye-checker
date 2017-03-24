@@ -6,22 +6,26 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::error::Error;
 use std::io;
 
+use walkdir::WalkDir;
+
 use product::{self, ProductSHA, ProductMatch};
 use product::RowSerializer;
 use configs;
 use api;
 use checker;
 
+pub fn start_path_scanner(dir: PathBuf)
+    -> (Receiver<ProductSHA>, thread::JoinHandle<Result<(), io::Error>> ) {
 
-
-pub fn start_path_scanner(dir_path: PathBuf)
-    -> (Receiver<product::ProductSHA>, thread::JoinHandle<Result<(), io::Error>> ) {
     let (sender, receiver) = channel::<ProductSHA>();
     let handle = thread::spawn(move || {
-        if let Some(shas) = checker::scan_dir(&dir_path, 0).ok() {
-            for sha in shas.into_iter() {
+        for entry in WalkDir::new(&dir).into_iter().filter_map(|e| e.ok()){
+            if let Some(sha) = checker::digest_file(&entry.path()) {
                 if sender.send(sha).is_err() {
-                    println!("start_path_scanner: failed send ProductSHA");
+                    println!(
+                        "start_path_scanner2: failed to send ProductSHA for {}",
+                        entry.path().display()
+                    );
                     break
                 }
             }

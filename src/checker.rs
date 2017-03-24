@@ -59,6 +59,21 @@ fn dispatch_encoder(filepath: &Path) -> Option<ProductSHA> {
     }
 }
 
+pub fn digest_file(filepath: &Path) -> Option<ProductSHA> {
+    if filepath.is_dir(){ return None; }
+
+    let opt_ext = filepath.extension();
+    if opt_ext.is_none() { return None; } //when hidden file or file has no extensions
+
+    let file_ext = opt_ext.unwrap().to_str().unwrap_or("");
+
+    match file_ext {
+        "nupkg" => Some(encode_nuget(filepath)),
+        "jar"   => Some(encode_jar(filepath)),
+        _       => None
+    }
+}
+
 pub fn scan_dir(dir: &Path, depth: u32) -> Result< Vec<ProductSHA>, io::Error>  {
     let mut rows = vec![];
 
@@ -87,3 +102,5 @@ pub fn scan_dir(dir: &Path, depth: u32) -> Result< Vec<ProductSHA>, io::Error>  
 
     Ok(rows)
 }
+
+
