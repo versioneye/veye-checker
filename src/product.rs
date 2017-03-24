@@ -1,6 +1,9 @@
 extern crate rustc_serialize;
 extern crate csv;
 
+
+pub type CSVStringRow = Vec<String>;
+
 // Automatically generate `RustcDecodable` and `RustcEncodable` trait implementations
 #[derive(RustcDecodable, RustcEncodable, Clone)]
 pub struct Product {
@@ -34,7 +37,7 @@ pub struct ProductMatch {
     pub url: Option<String>,
     pub licenses: Vec<ProductLicense>,
     pub n_vulns: u32,
-    pub filepath: Option<String>
+    pub error: Option<String>
 }
 
 impl ProductMatch {
@@ -52,7 +55,7 @@ impl ProductMatch {
             url: Some(url),
             licenses: vec![],
             n_vulns: 0,
-            filepath: None
+            error: None
         }
     }
 
@@ -63,26 +66,26 @@ impl ProductMatch {
             url: None,
             licenses: vec![],
             n_vulns: 0,
-            filepath: None
+            error: None
         }
     }
 }
 
 
 pub trait RowSerializer {
-    fn to_fields(&self) -> Vec<String>;
-    fn to_rows(&self) -> Vec<Vec<String>>;
+    fn to_fields(&self) -> CSVStringRow;
+    fn to_rows(&self) -> Vec<CSVStringRow>;
 }
 
 impl RowSerializer for ProductSHA {
-    fn to_fields(&self) -> Vec<String> {
+    fn to_fields(&self) -> CSVStringRow {
       vec![
           "filepath".to_string(), "packaging".to_string(),
           "sha_method".to_string(), "sha_value".to_string()
       ]
     }
 
-    fn to_rows(&self) -> Vec<Vec<String>> {
+    fn to_rows(&self) -> Vec<CSVStringRow> {
         let filepath = match self.filepath.clone() {
             Some(path) => path,
             None => "".to_string()
@@ -100,19 +103,17 @@ impl RowSerializer for ProductSHA {
 
 impl RowSerializer for ProductMatch {
 
-    fn to_fields(&self) -> Vec<String> {
+    fn to_fields(&self) -> CSVStringRow {
         vec![
             "filepath".to_string(), "packaging".to_string(), "sha_method".to_string(),
             "sha_value".to_string(), "language".to_string(), "prod_key".to_string(),
             "version".to_string(), "n_vulns".to_string(), "product_url".to_string(),
-            "license".to_string()
+            "license".to_string(), "error".to_string()
         ]
     }
 
-    fn to_rows(&self) -> Vec<Vec<String>> {
-        let mut csv_row: Vec<String> = vec![];
-
-        //csv_row.push(self.filepath.clone().unwrap_or("".to_string()));
+    fn to_rows(&self) -> Vec<CSVStringRow> {
+        let mut csv_row: CSVStringRow = vec![];
 
         csv_row = match self.sha.clone() {
             Some(x) => {
@@ -148,10 +149,19 @@ impl RowSerializer for ProductMatch {
         csv_row.push( self.url.clone().unwrap_or("".to_string()) );
 
         let mut rows = vec![];
-        for lic in &self.licenses {
-            let mut row = csv_row.to_vec();
-            row.push(lic.name.clone().to_string());
-            rows.push(row)
+
+        if self.licenses.len() > 0 {
+            // split every license into own line
+            for lic in &self.licenses {
+                let mut row = csv_row.to_vec();
+                row.push(lic.name.clone().to_string());
+                row.push(self.error.clone().unwrap_or("".to_string()));
+                rows.push(row);
+            }
+        } else {
+            csv_row.push("unknown".to_string()); //when response had no license information
+            csv_row.push(self.error.clone().unwrap_or("".to_string()));
+            rows.push(csv_row);
         }
 
         rows

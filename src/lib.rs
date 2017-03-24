@@ -19,3 +19,5 @@ pub mod product;
 pub mod checker;
 pub mod io;
 pub mod configs;
+
+pub mod tasks;

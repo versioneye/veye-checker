@@ -9,7 +9,7 @@ use serde_derive;
 use toml;
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ApiConfigs {
     pub host: Option<String>,
     pub path: Option<String>,

@@ -2,12 +2,12 @@ extern crate getopts;
 extern crate veye_checker;
 
 use getopts::Options;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::env;
 
 use veye_checker::io::{IOWriter, IOReader};
-use veye_checker::{product, api, checker, io, configs};
+use veye_checker::{product, api, checker, io, configs, tasks};
 use product::RowSerializer;
 
 
@@ -54,6 +54,7 @@ fn main() {
 
     let command = matches.free[0].clone();
     let cmd_res = match command.as_ref() {
+        "resolve"       => do_resolve_task(&matches),
         "scan"          => do_scan_task(&matches),
         "lookup"        => do_lookup_task(&matches),
         "lookup_csv"    => do_lookup_csv_task(&matches),
@@ -61,6 +62,46 @@ fn main() {
     };
 
     print_cmd_result(cmd_res);
+}
+
+fn do_resolve_task(matches: &getopts::Matches) -> Result<bool, String> {
+    let dir_txt = if matches.free.len() != 2 {
+        panic!("resolve tasks requires target folder".to_string());
+    } else {
+        matches.free[1].clone()
+    };
+    let mut global_configs = configs::read_configs();
+    //override global configs when use attached commandline key
+    if global_configs.api.key.is_none() && matches.opt_str("a").is_some() {
+        global_configs.api.key = matches.opt_str("a")
+    };
+
+    if global_configs.api.key.is_none() {
+        panic!(
+            "Missing API key: SET env var VERSIONEYE_API_KEY, or use -a param, or use veye_checker.toml"
+        );
+    };
+
+    let out_filepath = matches.opt_str("o");
+
+    // execute command pipeline
+    let dir = PathBuf::from(&dir_txt);
+    let (sha_ch, h1) = tasks::start_path_scanner(dir);
+    let (product_ch, h2) = tasks::start_sha_fetcher(global_configs.api.clone(), sha_ch);
+    let h3 = match out_filepath {
+        Some(out_path) => {
+            let out_path = PathBuf::from(out_path);
+            tasks::start_csv_writer(out_path, product_ch)
+        },
+        None => tasks::start_stdio_writer(product_ch)
+    };
+
+    h1.join().expect("resolve_task: failed to finish scan task");
+    h2.join().expect("resolve_task: failed to finish SHA fetcher task");
+    h3.join().expect("resolve_task: failed to dump all the products into output");
+
+    Ok(true)
+
 }
 
 
@@ -72,7 +113,7 @@ fn do_scan_task(matches: &getopts::Matches) -> Result<bool, String> {
         matches.free[1].clone()
     };
 
-    println!("Scanning: {}", dir_txt);
+
     let dir = Path::new(&dir_txt);
     let rows = match checker::scan_dir(dir, 0) {
         Ok(vals) => vals.into_iter().flat_map(|x| x.to_rows() ).collect(),
@@ -173,7 +214,7 @@ fn do_lookup_csv_task(matches: &getopts::Matches) -> Result<bool, String> {
 
         let the_prod = match api::fetch_product_details_by_sha(&global_configs.api, &file_sha.clone()) {
             Ok(mut m) => {
-                m.filepath = Some(file_path.clone());
+                //m.filepath = Some(file_path.clone());
                 m
             },
             Err(e) => {
@@ -183,7 +224,7 @@ fn do_lookup_csv_task(matches: &getopts::Matches) -> Result<bool, String> {
                 );
 
                 let mut empty_m = product::ProductMatch::empty();
-                empty_m.filepath = Some(file_path.clone());
+                //empty_m.filepath = Some(file_path.clone());
                 empty_m
             }
         };

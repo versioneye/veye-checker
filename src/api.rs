@@ -183,7 +183,6 @@ fn process_sha_response(json_text: Option<String> ) -> Result<product::ProductMa
 }
 
 // converts the response of product endpoint into ProductMatch struct
-//TODO: return ERROR message from API
 fn process_product_response(
     json_text: Option<String>, prod_url: Option<String>
 ) -> Result<product::ProductMatch, io::Error> {
@@ -237,7 +236,7 @@ fn process_product_response(
         url: prod_url,
         licenses : licenses,
         n_vulns : n_vulns,
-        filepath: None
+        error: None
     };
 
     Ok(the_match)
