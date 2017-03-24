@@ -10,7 +10,7 @@ One can use this utility to lookup package version details, license, vulnerabili
 
 ## Usage
 
-Download binaries from the [releases] and save into your binaries folder
+Download binaries from the [releases](https://github.com/versioneye/veye-checker/releases) and save it into your binaries folder
 
 ```
 curl -s -L -o "${HOME}/bin/veye_checker"  https://github.com/versioneye/veye-checker/releases/download/v0.1.0-RC1/veye_checker_osx
@@ -18,29 +18,31 @@ curl -s -L -o "${HOME}/bin/veye_checker"  https://github.com/versioneye/veye-che
 chmod a+x ~/bin/veye_checker
 ```
 
-* **scan** - scans the target folder recursively and outputs digests of supported packagefiles:
+* **resolve** - scans the target folder recursively, translates filedigest via VersionEye API into product details and prints out results.
+
+```
+veye_checker resolve ../jars -a "api-key"
+VERSIONEYE_API_KEY="apitoken" veye_checker resolve ../jars
+veye_checker resolve ../jars -o resolve.csv -a "api-key"
+```
+
+* **shas** - scans the target folder recursively and outputs digests of supported packagefiles:
 
 ```bash
-veye_checker scan ../temp/ 
-veye_checker scan ../temp/ -o results.csv
+veye_checker shas ../jars/ 
+veye_checker shas ../jars/ -o results.csv
 ```
 
 * **lookup** - fetches product details from VersionEye api by the SHA/digest value.
 
 ```bash
 veye_checker lookup <SHA_STRING> -a <YOUR_API_KEY>
-```
-
-* **lookup_csv** - reads SHA values from the `scan` output file and 
-outputs matched product info for every row. 
-
-```bash
-veye_checker lookup_csv scan_results.csv -a <YOUR_API_KEY> -o res.csv
+VERSIONEYE_API_KEY="apikey" veye_checker lookup <SHA_STRING>
 ```
 
 ## API keys
 
-All the commands ( *lookup*, *lookup_csv*, etc ) requesting data from the  [VersionEye api](https://www.versioneye.com/api/v2) require API-key, which you can obtain from [your's profile page](https://www.versioneye.com/organisations/private/apikey).
+All the commands ( *lookup*, *resolve*, etc ) requesting data from the  [VersionEye api](https://www.versioneye.com/api/v2) require the API-key, which you can obtain from [your's profile page](https://www.versioneye.com/organisations/private/apikey).
 
 It's possible to specify the api-key 3 ways:
 
