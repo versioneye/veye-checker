@@ -14,13 +14,13 @@ use product::RowSerializer;
 fn show_usage(program_name: &str, opts: Options) -> Result<bool, String> {
     let brief = format!(r#"
         usage:
-            {} scan DIRECTORY_PATH -o OUTPUT_FILE
+            {} resolve DIRECTORY_TO_SCAN -o OUTPUT_FILE -a API_TOKEN
+            {} shas DIRECTORY_PATH -o OUTPUT_FILE
             {} lookup FILE_SHA -a API_TOKEN
-            {} lookup_csv SHA_FILE_PATH -o OUTPUT_FILE -a API_TOKEN
         "#, program_name, program_name, program_name
     );
 
-    print!("{}", opts.usage(&brief));
+    println!("{}", opts.usage(&brief));
     Ok(true)
 }
 
@@ -55,9 +55,8 @@ fn main() {
     let command = matches.free[0].clone();
     let cmd_res = match command.as_ref() {
         "resolve"       => do_resolve_task(&matches),
-        "scan"          => do_scan_task(&matches),
+        "shas"          => do_shas_task(&matches),
         "lookup"        => do_lookup_task(&matches),
-        "lookup_csv"    => do_lookup_csv_task(&matches),
         _               => show_usage(&program_name, opts)
     };
 
@@ -82,18 +81,16 @@ fn do_resolve_task(matches: &getopts::Matches) -> Result<bool, String> {
         );
     };
 
-    let out_filepath = matches.opt_str("o");
-
     // execute command pipeline
     let dir = PathBuf::from(&dir_txt);
     let (sha_ch, h1) = tasks::start_path_scanner(dir);
     let (product_ch, h2) = tasks::start_sha_fetcher(global_configs.api.clone(), sha_ch);
-    let h3 = match out_filepath {
+    let h3 = match matches.opt_str("o") {
         Some(out_path) => {
             let out_path = PathBuf::from(out_path);
-            tasks::start_csv_writer(out_path, product_ch)
+            tasks::start_product_csv_writer(out_path, product_ch)
         },
-        None => tasks::start_stdio_writer(product_ch)
+        None => tasks::start_product_stdio_writer(product_ch)
     };
 
     h1.join().expect("resolve_task: failed to finish scan task");
@@ -105,7 +102,7 @@ fn do_resolve_task(matches: &getopts::Matches) -> Result<bool, String> {
 }
 
 
-fn do_scan_task(matches: &getopts::Matches) -> Result<bool, String> {
+fn do_shas_task(matches: &getopts::Matches) -> Result<bool, String> {
     //extract input arguments
     let dir_txt = if matches.free.len() != 2 {
         panic!("scan command misses a path to folder".to_string());
@@ -113,28 +110,19 @@ fn do_scan_task(matches: &getopts::Matches) -> Result<bool, String> {
         matches.free[1].clone()
     };
 
+    let dir = PathBuf::from(&dir_txt);
+    let (sha_ch, h1) = tasks::start_path_scanner(dir);
+    let h2 = match matches.opt_str("o") {
+        Some(outfile_path) => {
+            let outpath = PathBuf::from(&outfile_path);
+            tasks::start_sha_csv_writer(outpath, sha_ch)
+        },
+        None => tasks::start_sha_stdio_writer(sha_ch)
 
-    let dir = Path::new(&dir_txt);
-    let rows = match checker::scan_dir(dir, 0) {
-        Ok(vals) => vals.into_iter().flat_map(|x| x.to_rows() ).collect(),
-        Err(_)   => {
-            println!("Failed to scan folder {}", &dir_txt);
-            vec![]
-        }
     };
 
-    if let Some(outpath) = matches.opt_str("o") {
-        let path_str = outpath.clone();
-        let wtr = io::CSVWriter::new(path_str.clone());
-
-        println!("Will dump results into file... {}", &path_str);
-        wtr.write_rows(rows.into_iter()).unwrap();
-
-    } else {
-        println!("No output file were defined");
-        let wtr = io::StdOutWriter::new();
-        wtr.write_rows(rows.into_iter()).unwrap();
-    }
+    h1.join().expect("shas_task: failed to scan file digests");
+    h2.join().expect("shas_task: failed to print results into output");
 
     Ok(true)
 }
@@ -185,67 +173,6 @@ fn do_lookup_task(matches: &getopts::Matches) -> Result<bool, String> {
     Ok(true)
 }
 
-fn do_lookup_csv_task(matches: &getopts::Matches) -> Result<bool, String> {
-    let sha_results_filepath = if matches.free.len() != 2 {
-        panic!("lookup_csv: no input file was specified");
-    } else {
-        matches.free[1].clone()
-    };
-
-    let mut  global_configs = configs::read_configs();
-    //override global configs when use attached commandline key
-    if global_configs.api.key.is_none() && matches.opt_str("a").is_some() {
-        global_configs.api.key = matches.opt_str("a")
-    };
-    if global_configs.api.key.is_none() {
-        panic!(
-            "Missing API key: SET env var VERSIONEYE_API_KEY, or use -a param, or use veye_checker.toml"
-        );
-    };
-
-
-    let rdr = io::CSVReader::new( sha_results_filepath );
-    let mut csv_rows: Vec<Vec<String>> = vec![];
-    let product_headers = product::ProductMatch::empty().to_fields();
-
-    csv_rows.push(product_headers);
-    for row in rdr.read_all().expect("Failed to read sha file") {
-        let (file_path, file_sha) = (&row[0], &row[1]);
-
-        let the_prod = match api::fetch_product_details_by_sha(&global_configs.api, &file_sha.clone()) {
-            Ok(mut m) => {
-                //m.filepath = Some(file_path.clone());
-                m
-            },
-            Err(e) => {
-                println!(
-                    "Failed to get product details for {}, {} - {}",
-                    file_path.clone(), file_sha.clone(), e.description()
-                );
-
-                let mut empty_m = product::ProductMatch::empty();
-                //empty_m.filepath = Some(file_path.clone());
-                empty_m
-            }
-        };
-
-        for row in the_prod.to_rows() {
-            csv_rows.push(row);
-        };
-
-    };
-
-    if let Some(output_path) = matches.opt_str("o") {
-        let csv_writer = io::CSVWriter::new(output_path);
-        csv_writer.write_rows(csv_rows.into_iter()).unwrap();
-    } else {
-        let io_writer = io::StdOutWriter::new();
-        io_writer.write_rows(csv_rows.into_iter()).unwrap();
-    }
-
-
-    Ok(true)
-}
 
 fn print_cmd_result(cmd_res: Result<bool, std::string::String>){
     match cmd_res {

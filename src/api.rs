@@ -42,7 +42,6 @@ fn request_json(uri: &Url) -> Option<String> {
     let mut client = Client::with_connector(connector);
     client.set_read_timeout(Some(Duration::new(5,0)));
 
-    //todo: refactor so it returns Results<String, Error>
     let mut res = client.get(uri.as_str()).send().expect("Failed to fetch results from the url");
     let mut body = String::new();
     res.read_to_string(&mut body).expect("Failed to read response body");
@@ -52,7 +51,6 @@ fn request_json(uri: &Url) -> Option<String> {
 
 pub fn fetch_product_details_by_sha(api_confs: &ApiConfigs, file_sha: &str)
     -> Result<product::ProductMatch, Error> {
-    println!("Going to checkup product by SHA: {}", file_sha);
 
     let sha_res = fetch_product_by_sha(&api_confs, &file_sha);
     match sha_res {
@@ -64,7 +62,10 @@ pub fn fetch_product_details_by_sha(api_confs: &ApiConfigs, file_sha: &str)
                     m.sha = Some(sha);
                     Ok(m)
                 },
-                Err(e) => Err(e)
+                Err(e) => {
+                    println!("Failed to fetch product details for sha: {}", file_sha);
+                    Err(e)
+                }
             }
 
         },
@@ -93,7 +94,6 @@ pub fn fetch_product_by_sha(api_confs: &ApiConfigs, sha: &str)
         .clear()
         .append_pair("api_key", api_confs.key.clone().unwrap().as_str());
 
-    println!("Fetching product info by sha...");
     let json_txt = request_json( &resource_url );
     process_sha_response(json_txt)
 }

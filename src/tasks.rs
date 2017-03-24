@@ -64,13 +64,14 @@ pub fn start_sha_fetcher(api_configs: configs::ApiConfigs, sha_ch:  Receiver<Pro
     (receiver, handle)
 }
 
-pub fn start_csv_writer(outpath: PathBuf, product_ch: Receiver<ProductMatch>)
+pub fn start_product_csv_writer(outpath: PathBuf, product_ch: Receiver<ProductMatch>)
     -> thread::JoinHandle< Result<(), csv::Error> > {
 
     thread::spawn(move || {
         let mut n = 0u32;
         let mut wtr = csv::Writer::from_file(outpath).expect("Failed to open output file");
 
+        println!();
         for product in product_ch.into_iter() {
             if n == 0 {
                 wtr.encode(product.to_fields()).unwrap();
@@ -80,15 +81,17 @@ pub fn start_csv_writer(outpath: PathBuf, product_ch: Receiver<ProductMatch>)
                 wtr.encode(row).unwrap();
             }
 
+            print!("\rrow: {}", n + 1); //to show some progress
             n += 1;
         }
 
+        println!();
         Ok(())
     })
 
 }
 
-pub fn start_stdio_writer(product_ch: Receiver<ProductMatch>)
+pub fn start_product_stdio_writer(product_ch: Receiver<ProductMatch>)
     -> thread::JoinHandle<Result<(), csv::Error >> {
 
     thread::spawn(move || {
@@ -105,7 +108,60 @@ pub fn start_stdio_writer(product_ch: Receiver<ProductMatch>)
                 wtr.encode(row).unwrap();
             }
 
-            println!("{}", wtr.as_string());
+            print!("{}", wtr.as_string());
+            n += 1;
+        }
+
+        Ok(())
+    })
+}
+
+
+pub fn start_sha_csv_writer(outpath: PathBuf, sha_ch: Receiver<ProductSHA>)
+    -> thread::JoinHandle< Result<(), csv::Error> > {
+
+    thread::spawn(move || {
+        let mut n = 0u32;
+        let mut wtr = csv::Writer::from_file(outpath).expect("Failed to open output file");
+
+        println!();
+        for sha in sha_ch.into_iter() {
+            if n == 0 {
+                wtr.encode(sha.to_fields()).unwrap();
+            };
+
+            if let Some(row) = sha.to_rows().pop() {
+                wtr.encode(row).unwrap();
+            }
+
+            print!("\rrow: {}", n + 1); //to show some progress
+            n += 1;
+        }
+
+        println!();
+        Ok(())
+    })
+
+}
+
+pub fn start_sha_stdio_writer(sha_ch: Receiver<ProductSHA>)
+    -> thread::JoinHandle<Result<(), csv::Error >> {
+
+    thread::spawn(move || {
+        let mut n = 0u32;
+
+        for sha in sha_ch.into_iter() {
+            let mut wtr = csv::Writer::from_memory();
+
+            if n == 0 {
+                wtr.encode(sha.to_fields()).unwrap();
+            }
+
+            if let Some(row) = sha.to_rows().pop() {
+                wtr.encode(row).unwrap();
+            }
+
+            print!("{}", wtr.as_string());
             n += 1;
         }
 
