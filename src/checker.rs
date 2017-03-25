@@ -9,7 +9,7 @@ use std::fs::{self, File};
 
 use product::ProductSHA;
 
-fn encode_jar(filepath: &Path) -> ProductSHA {
+pub fn digest_jar(filepath: &Path) -> ProductSHA {
     let mut f = File::open(filepath).ok().expect("Failed to read file");
     let mut buffer = Vec::new();
 
@@ -27,7 +27,7 @@ fn encode_jar(filepath: &Path) -> ProductSHA {
     }
 }
 
-fn encode_nuget(filepath: &Path) -> ProductSHA {
+pub fn digest_nupkg(filepath: &Path) -> ProductSHA {
     let mut f = File::open(filepath).ok().expect("Failed to read file");
     let mut buffer = Vec::new();
     let mut hasher = Sha512::new();
@@ -55,8 +55,8 @@ pub fn digest_file(filepath: &Path) -> Option<ProductSHA> {
     let file_ext = opt_ext.unwrap().to_str().unwrap_or("");
 
     match file_ext {
-        "nupkg" => Some(encode_nuget(filepath)),
-        "jar"   => Some(encode_jar(filepath)),
+        "nupkg" => Some(digest_nupkg(filepath)),
+        "jar"   => Some(digest_jar(filepath)),
         _       => None
     }
 }
