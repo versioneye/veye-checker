@@ -196,13 +196,27 @@ pub fn process_sha_response(json_text: Option<String> ) -> Result<product::Produ
 }
 
 // converts the response of product endpoint into ProductMatch struct
-fn process_product_response(
+pub fn process_product_response(
     json_text: Option<String>, prod_url: Option<String>
 ) -> Result<product::ProductMatch, io::Error> {
 
-    let json_text = json_text.expect("process_product_response: got none JSON doc");
-    let json_obj = Json::from_str( &json_text).expect("Failed to parse product JSON");
+    if json_text.is_none() {
+        return Err(
+            Error::new(ErrorKind::Other, "API returned empty response string")
+        )
+    }
 
+    let json_res = Json::from_str( &json_text.clone().unwrap());
+    if json_res.is_err() {
+        return Err(
+            Error::new(
+                ErrorKind::Other,
+                format!("Failed to parse JSON response from SHA api: {:?}", json_text).as_str()
+            )
+        )
+    }
+
+    let json_obj = json_res.unwrap();
     if !json_obj.is_object() {
         return Err(Error::new(ErrorKind::Other, "Response had no product details"));
     }

@@ -141,3 +141,57 @@ fn test_api_process_sha_response_with_api_error(){
     let res = api::process_sha_response(Some(body_txt.to_string()));
     assert_eq!(true, res.is_err());
 }
+
+#[test]
+fn test_api_process_product_response(){
+    let body_txt = r#"
+    {
+        "name": "commons-beanutils",
+        "language": "java",
+        "prod_key": "commons-beanutils/commons-beanutils",
+        "version": "1.7.0",
+        "prod_type": "Maven2",
+        "group_id": "commons-beanutils",
+        "artifact_id": "commons-beanutils",
+        "license_info": "unknown",
+        "description": "BeanUtils provides ...",
+        "licenses" : [],
+        "security_vulnerabilities" : [
+            {"id":  1},
+            {"id" : 2}
+        ]
+  }
+    "#;
+
+    let res = api::process_product_response(Some(body_txt.to_string()), None);
+    assert_eq!(true, res.is_ok());
+    let prod_match = res.unwrap();
+    assert_eq!(0, prod_match.licenses.len());
+    assert_eq!(2, prod_match.n_vulns);
+
+    assert_eq!(true, prod_match.product.is_some());
+    let prod = prod_match.product.unwrap();
+    assert_eq!("java".to_string(), prod.language);
+    assert_eq!("Maven2".to_string(), prod.prod_type.unwrap());
+    assert_eq!("commons-beanutils/commons-beanutils".to_string(), prod.prod_key);
+    assert_eq!("1.7.0".to_string(), prod.version);
+    assert_eq!("commons-beanutils".to_string(), prod.name);
+
+}
+
+#[test]
+fn test_api_process_product_response_with_empty_result(){
+    let res = api::process_product_response(Some("".to_string()), None);
+    assert_eq!(true, res.is_err());
+    let e = res.err().unwrap();
+    println!("message: {}", e.description());
+}
+
+#[test]
+fn test_api_process_product_response_with_api_error(){
+    let body_txt = r#"
+        {"error": "Failed to match it"}
+    "#;
+    let res = api::process_product_response(Some(body_txt.to_string()), None);
+    assert_eq!(true, res.is_err());
+}
