@@ -33,13 +33,11 @@ impl ProductSHA {
     }
 }
 
-
 #[derive(RustcDecodable, RustcEncodable)]
 pub struct ProductLicense {
     pub name: String,
     pub url: String
 }
-
 
 #[derive(RustcDecodable, RustcEncodable)]
 pub struct ProductMatch {

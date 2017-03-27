@@ -143,7 +143,8 @@ pub fn fetch_product<'a>(
 //TODO: is json_obj is object and has key error -> return error message from API
 fn process_sha_response(json_text: Option<String> ) -> Result<product::ProductMatch, io::Error> {
     let json_text = json_text.expect("process_sha_response: got null json text");
-    let json_obj = Json::from_str( &json_text).expect("Failed to parse product JSON");
+    let json_obj = Json::from_str( &json_text)
+        .expect(format!("Failed to parse product JSON: {}", json_text).as_str());
 
     //if response includes error field in HTTP200 response
     if let Some(error_val) = json_obj.find("error") {

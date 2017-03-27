@@ -104,6 +104,8 @@ or simpler command
 
 or running tests
 > cargo test
+#test only api-calls
+> VERSIONEYE_API_KEY="APIKEY" cargo test --features "api"
 
 or optimized production release
 > cargo build --release
