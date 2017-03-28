@@ -3,8 +3,8 @@ extern crate csv;
 use std::path::PathBuf;
 use std::thread;
 use std::sync::mpsc::{channel, Receiver, Sender};
-use std::error::Error;
-use std::io;
+use std::io::{self, Error, ErrorKind};
+
 
 use walkdir::WalkDir;
 
@@ -19,6 +19,12 @@ pub fn start_path_scanner(dir: PathBuf)
 
     let (sender, receiver) = channel::<ProductSHA>();
     let handle = thread::spawn(move || {
+        if dir.exists() == false {
+            return Err(
+              Error::new(ErrorKind::Other, "Scannable folder doesnt exists")
+            );
+        }
+
         for entry in WalkDir::new(&dir).into_iter().filter_map(|e| e.ok()){
             if let Some(sha) = checker::digest_file(&entry.path()) {
                 if sender.send(sha).is_err() {
