@@ -171,3 +171,53 @@ fn test_task_start_sha_csv_writer_empty_input(){
 
     fs::remove_file(outpath.as_path()).expect("Failed to delete test_task_start_sha file");
 }
+
+#[test]
+fn test_task_start_product_csv_writer(){
+    let outpath = PathBuf::from("temp/test_task_product_writer.csv");
+    let test_prods = vec![
+        product::ProductMatch::empty()
+    ];
+    let expected_content = "filepath,packaging,sha_method,sha_value,language,prod_key,version,n_vulns,product_url,license,error\n,,,,,,,0,,unknown,\n";
+
+    let (prod_ch, h1) = tasks::start_product_match_publisher(test_prods);
+    let h2 = tasks::start_product_csv_writer(outpath.clone(), prod_ch);
+
+    let res1 = h1.join().unwrap();
+    assert_eq!(true, res1.is_ok());
+    let res2 = h2.join().unwrap();
+    assert_eq!(true, res2.is_ok());
+
+    let f_res = File::open(outpath.clone().as_path());
+    assert_eq!(true, f_res.is_ok());
+    let mut fd = f_res.unwrap();
+    let mut content = String::new();
+    fd.read_to_string(&mut content);
+    assert_eq!(expected_content.to_string(), content);
+
+    fs::remove_file(outpath.as_path()).expect("Failed to delete test_task_start_sha file");
+}
+
+#[test]
+fn test_task_start_product_csv_writer_empty_rows(){
+    let outpath = PathBuf::from("temp/test_task_product_writer_empty.csv");
+    let test_prods = vec![];
+    let expected_content = "";
+
+    let (prod_ch, h1) = tasks::start_product_match_publisher(test_prods);
+    let h2 = tasks::start_product_csv_writer(outpath.clone(), prod_ch);
+
+    let res1 = h1.join().unwrap();
+    assert_eq!(true, res1.is_ok());
+    let res2 = h2.join().unwrap();
+    assert_eq!(true, res2.is_ok());
+
+    let f_res = File::open(outpath.clone().as_path());
+    assert_eq!(true, f_res.is_ok());
+    let mut fd = f_res.unwrap();
+    let mut content = String::new();
+    fd.read_to_string(&mut content);
+    assert_eq!(expected_content.to_string(), content);
+
+    fs::remove_file(outpath.as_path()).expect("Failed to delete test_task_start_sha file");
+}

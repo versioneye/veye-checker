@@ -62,6 +62,26 @@ pub fn start_sha_publisher(shas: Vec<ProductSHA>)
     (receiver, handle)
 }
 
+//pumps each item of productMatch vector onto product channel
+//used to simplify testing
+pub fn start_product_match_publisher(prod_matches: Vec<ProductMatch>)
+    -> (Receiver<ProductMatch>, thread::JoinHandle<Result<(), io::Error>>) {
+
+    let (sender, receiver) = channel::<ProductMatch>();
+    let handle = thread::spawn(move || {
+        for prod_match in prod_matches.into_iter() {
+            if sender.send(prod_match).is_err() {
+                println!("start_product_match_publisher: failed to pipe ProductMatch onto channel");
+                break
+            }
+        }
+
+        Ok(())
+    });
+
+    (receiver, handle)
+}
+
 pub fn start_sha_fetcher(api_configs: configs::ApiConfigs, sha_ch:  Receiver<ProductSHA>)
     -> (Receiver<product::ProductMatch>, thread::JoinHandle<io::Result<()>>) {
 
