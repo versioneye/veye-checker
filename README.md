@@ -113,6 +113,27 @@ or optimized production release
 
 ```
 
+### TESTING
+
+* to run all the unit tests
+```bash
+cargo test
+```
+
+* to run integration test against API configs
+
+```bash
+VERSIONEYE_API_KEY="your_api_key" cargo test --features="api"
+```
+
+* to run acceptance tests
+
+```bash
+cd tests/acceptance
+VERSIONEYE_API_KEY="your_api_key" ./run.sh 
+```
+
+
 ## Contributing
 
 It's opensource project and any kind of contribution is more than welcome. 
