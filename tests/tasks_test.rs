@@ -1,6 +1,8 @@
 extern crate veye_checker;
 
 use std::path::PathBuf;
+use std::fs::{self, File};
+use std::io::Read;
 use veye_checker::{tasks, product, configs};
 
 #[test]
@@ -117,4 +119,55 @@ fn test_api_task_start_sha_fetcher_sha_dont_exists(){
     assert_eq!(true, res1.is_ok());
     let res2 = h2.join().unwrap();
     assert_eq!(true, res2.is_ok());
+}
+
+#[test]
+fn test_task_start_sha_csv_writer(){
+    let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
+    let test_shas = vec![
+        product::ProductSHA::from_sha(file_sha.to_string())
+    ];
+    let outpath = PathBuf::from("temp/test_task_sha_writer.csv");
+    let expected_content = "filepath,packaging,sha_method,sha_value\n,,,5675fd96b29656504b86029551973d60fb41339b\n";
+
+    let (sha_ch, h1) = tasks::start_sha_publisher(test_shas);
+    let h2 = tasks::start_sha_csv_writer(outpath.clone(), sha_ch);
+
+    let res1 = h1.join().unwrap();
+    assert_eq!(true, res1.is_ok());
+    let res2 = h2.join().unwrap();
+    assert_eq!(true, res2.is_ok());
+
+    let f_res = File::open(outpath.clone().as_path());
+    assert_eq!(true, f_res.is_ok());
+    let mut fd = f_res.unwrap();
+    let mut content = String::new();
+    fd.read_to_string(&mut content);
+    assert_eq!(expected_content.to_string(), content);
+
+    fs::remove_file(outpath.as_path()).expect("Failed to delete test_task_start_sha file");
+}
+
+#[test]
+fn test_task_start_sha_csv_writer_empty_input(){
+    let test_shas = vec![];
+    let outpath = PathBuf::from("temp/test_task_sha_writer_empty.csv");
+    let expected_content = "";
+
+    let (sha_ch, h1) = tasks::start_sha_publisher(test_shas);
+    let h2 = tasks::start_sha_csv_writer(outpath.clone(), sha_ch);
+
+    let res1 = h1.join().unwrap();
+    assert_eq!(true, res1.is_ok());
+    let res2 = h2.join().unwrap();
+    assert_eq!(true, res2.is_ok());
+
+    let f_res = File::open(outpath.clone().as_path());
+    assert_eq!(true, f_res.is_ok());
+    let mut fd = f_res.unwrap();
+    let mut content = String::new();
+    fd.read_to_string(&mut content);
+    assert_eq!(expected_content.to_string(), content);
+
+    fs::remove_file(outpath.as_path()).expect("Failed to delete test_task_start_sha file");
 }
