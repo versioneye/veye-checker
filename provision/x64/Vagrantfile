@@ -1,0 +1,41 @@
+Vagrant.configure("2") do |config|
+
+    #configure virtualmachine
+    config.vm.box = "bento/ubuntu-16.10"
+    config.vm.synced_folder "../../binaries", "/media/releases"
+    config.vm.post_up_message = "Welcome to VeyeChecker linux build image"
+    config.vm.provision "shell", path: "setup_ubuntu_box.sh"
+
+    #build commands
+    config.push.define "local-exec" do |push|
+        push.script = "make_x86_release.sh"
+    end
+
+    # register triggers
+    config.trigger.after [:up, :resume], :stdout => true do
+
+        unless ENV.has_key? 'VERSIONEYE_API_KEY'
+            abort "VERSIONEYE_API_KEY is unspecified - required for tests"
+        end
+
+        unless ENV.has_key? 'RELEASE_VERSION'
+            p "#-- WARNING --------------------------------------------------"
+            p ""
+            p "RELEASE_VERSION is unspecified - will use unixstamp instead;"
+            p ""
+            p "--------------------------------------------------------------"
+
+            sleep 3
+        end
+
+        info "Setting ENV vars for build"
+        run_remote <<-SCRIPT
+            echo \"export VERSIONEYE_API_KEY=#{ENV['VERSIONEYE_API_KEY']}\" >> ~/.profile
+            echo \"export RELEASE_VERSION=#{ENV['RELEASE_VERSION']}\" >> ~/.profile
+        SCRIPT
+
+        info "Executing release command"
+        run_remote "bash /vagrant/make_x86_release.sh"
+    end
+
+end
