@@ -21,6 +21,12 @@ echo "Pulling latest code from master"
 cd ${WORK_DIR}
 git pull
 
+if [ ! -d "temp" ]; then
+    echo "Add temp folder to keep test results"
+    mkdir -p temp
+fi
+
+
 echo "Running unit-tests"
 cargo test
 if [ $? -ne 0 ]; then
@@ -34,7 +40,7 @@ cargo build
 
 echo "Running acceptance tests against debug release..."
 cd ${TEST_DIR}
-BIN_PATH="../../target/debug/veye_checker"
+export VERSIONEYE_BIN_PATH="../../target/debug/veye_checker"
 bash tests.sh
 if [ $? -ne 0 ]; then
     echo "Failed to pass acceptance tests on debug release"
@@ -47,7 +53,7 @@ cargo build --release
 
 echo "Running acceptance tests against production release ..."
 cd ${TEST_DIR}
-BIN_PATH="../../target/release/veye_checker"
+export VERSIONEYE_BIN_PATH="../../target/release/veye_checker"
 bash tests.sh
 if [ $? -ne 0 ]; then
     echo "Failed to pass acceptance tests on production release"

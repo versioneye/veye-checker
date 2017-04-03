@@ -4,13 +4,9 @@ Vagrant.configure("2") do |config|
     config.vm.box = "bento/ubuntu-16.10"
     config.vm.synced_folder "../../binaries", "/media/releases"
     config.vm.post_up_message = "Welcome to VeyeChecker linux build image"
-    config.vm.provision "shell", path: "setup_ubuntu_box.sh"
+    config.vm.provision "shell", path: "setup_ubuntu_box.sh", privileged: true
 
     #build commands
-    config.push.define "local-exec" do |push|
-        push.script = "make_x86_release.sh"
-    end
-
     # register triggers
     config.trigger.after [:up, :resume], :stdout => true do
 

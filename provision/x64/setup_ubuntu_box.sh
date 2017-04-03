@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 #update package registry
-apt-get update
-apt-get install -y curl g++ git
+sudo apt-get update
+sudo apt-get install -y curl g++ git
 
 #install rust
 
