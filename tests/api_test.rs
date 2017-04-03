@@ -126,6 +126,48 @@ fn test_api_process_sha_response(){
 }
 
 #[test]
+fn test_api_process_sha_response_with_null_fields(){
+    let file_sha = "U82mHQSKaIk+lpSVCbWYKNavmNH1i5xrExDEquU1i6I5pV6UMOqRnJRSlKO3cMPfcpp0RgDY+8jUXHdQ4IfXvw==";
+    let res_body = r#"
+    [
+        {
+            "language": "CSharp",
+            "prod_key": "Newtonsoft.Json",
+            "version": "9.0.1",
+            "group_id": null,
+            "artifact_id": null,
+            "classifier": null,
+            "packaging": null,
+            "prod_type": "Nuget",
+            "sha_value": "U82mHQSKaIk+lpSVCbWYKNavmNH1i5xrExDEquU1i6I5pV6UMOqRnJRSlKO3cMPfcpp0RgDY+8jUXHdQ4IfXvw==",
+            "sha_method": "sha512"
+        }
+    ]
+    "#;
+
+    let res = api::process_sha_response(Some(res_body.to_string()));
+    assert_eq!(true, res.is_ok());
+
+    if let Some(prod_match) = res.ok() {
+        assert_eq!(true, prod_match.sha.is_some());
+        let sha = prod_match.sha.unwrap();
+        assert_eq!("unknown".to_string(), sha.packaging);
+        assert_eq!("sha512".to_string(), sha.method);
+        assert_eq!(file_sha.to_string(), sha.value);
+        assert_eq!(None, sha.filepath);
+
+        assert_eq!(true, prod_match.product.is_some());
+        let prod = prod_match.product.unwrap();
+        assert_eq!("CSharp".to_string(), prod.language);
+        assert_eq!("Nuget".to_string(), prod.prod_type.unwrap());
+        assert_eq!("Newtonsoft.Json".to_string(), prod.prod_key);
+        assert_eq!("9.0.1".to_string(), prod.version);
+        assert_eq!("".to_string(), prod.name);
+    }
+
+}
+
+#[test]
 fn test_api_process_sha_response_with_empty_result(){
     let res = api::process_sha_response(Some("".to_string()));
     assert_eq!(true, res.is_err());
