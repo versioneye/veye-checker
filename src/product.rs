@@ -100,11 +100,10 @@ impl RowSerializer for ProductSHA {
             None => "".to_string()
         };
 
-        let mut csv_row = vec![
+        let csv_row = vec![
             filepath, self.packaging.clone(),
             self.method.clone(), self.value.clone()
         ];
-
 
         vec![csv_row]
     }

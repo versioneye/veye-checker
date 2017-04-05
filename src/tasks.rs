@@ -94,7 +94,7 @@ pub fn start_sha_fetcher(api_configs: configs::ApiConfigs, sha_ch:  Receiver<Pro
                     m.sha = Some(sha); //attach original sha document to have filepath data
                     m
                 },
-                Err(e) => {
+                Err(_) => {
                     //use empty product, so non-matched products will show up in output file
                     let mut m = ProductMatch::empty();
                     m.sha = Some(sha);

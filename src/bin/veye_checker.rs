@@ -89,9 +89,9 @@ fn do_resolve_task(matches: &getopts::Matches) -> Result<bool, String> {
         None => tasks::start_product_stdio_writer(product_ch)
     };
 
-    h1.join().expect("resolve_task: failed to finish scan task");
-    h2.join().expect("resolve_task: failed to finish SHA fetcher task");
-    h3.join().expect("resolve_task: failed to dump all the products into output");
+    h1.join().expect("resolve_task: failed to finish scan task").unwrap();
+    h2.join().expect("resolve_task: failed to finish SHA fetcher task").unwrap();
+    h3.join().expect("resolve_task: failed to dump all the products into output").unwrap();
 
     Ok(true)
 
@@ -117,8 +117,8 @@ fn do_shas_task(matches: &getopts::Matches) -> Result<bool, String> {
 
     };
 
-    h1.join().expect("shas: failed to scan file digests");
-    h2.join().expect("shas: failed to print results into output");
+    h1.join().expect("shas: failed to scan file digests").unwrap();
+    h2.join().expect("shas: failed to print results into output").unwrap();
 
     Ok(true)
 }
@@ -156,9 +156,9 @@ fn do_lookup_task(matches: &getopts::Matches) -> Result<bool, String> {
         None => tasks::start_product_stdio_writer(prod_ch)
     };
 
-    h1.join().expect("lookup: failed to prepare sha value for request");
-    h2.join().expect("lookup: failed to fetch product details by sha value");
-    h3.join().expect("lookup: failed to output product details");
+    h1.join().expect("lookup: failed to prepare sha value for request").unwrap();
+    h2.join().expect("lookup: failed to fetch product details by sha value").unwrap();
+    h3.join().expect("lookup: failed to output product details").unwrap();
 
     Ok(true)
 }

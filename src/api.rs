@@ -99,7 +99,7 @@ pub fn fetch_product_by_sha(api_confs: &ApiConfigs, sha: &str)
 }
 
 pub fn encode_prod_key<'b>( prod_key: &'b str) -> String {
-    let mut encoded_prod_key = prod_key.to_string();
+    let encoded_prod_key = prod_key.to_string();
     encoded_prod_key
         .replace(".", "~")
         .replace("/", ":")

@@ -24,7 +24,7 @@ fn test_task_start_path_scanner_folder_dont_exist(){
     let test_dir = PathBuf::from("test/fixtures/dont_exists");
     assert_eq!(false, test_dir.exists());
 
-    let (sha_ch, h1) = tasks::start_path_scanner(test_dir);
+    let (_, h1) = tasks::start_path_scanner(test_dir);
 
     let res = h1.join().unwrap();
     assert_eq!(true, res.is_err())
@@ -48,7 +48,7 @@ fn test_task_start_sha_publisher(){
 #[test]
 fn test_task_start_sha_publisher_with_empty_array(){
     let test_shas = vec![];
-    let (sha_ch, h1) = tasks::start_sha_publisher(test_shas);
+    let (_ , h1) = tasks::start_sha_publisher(test_shas);
 
     let res = h1.join().unwrap();
     assert_eq!(true, res.is_ok());
@@ -142,7 +142,7 @@ fn test_task_start_sha_csv_writer(){
     assert_eq!(true, f_res.is_ok());
     let mut fd = f_res.unwrap();
     let mut content = String::new();
-    fd.read_to_string(&mut content);
+    fd.read_to_string(&mut content).unwrap();
     assert_eq!(expected_content.to_string(), content);
 
     fs::remove_file(outpath.as_path()).expect("Failed to delete test_task_start_sha file");
@@ -166,7 +166,7 @@ fn test_task_start_sha_csv_writer_empty_input(){
     assert_eq!(true, f_res.is_ok());
     let mut fd = f_res.unwrap();
     let mut content = String::new();
-    fd.read_to_string(&mut content);
+    fd.read_to_string(&mut content).unwrap();
     assert_eq!(expected_content.to_string(), content);
 
     fs::remove_file(outpath.as_path()).expect("Failed to delete test_task_start_sha file");
@@ -192,7 +192,7 @@ fn test_task_start_product_csv_writer(){
     assert_eq!(true, f_res.is_ok());
     let mut fd = f_res.unwrap();
     let mut content = String::new();
-    fd.read_to_string(&mut content);
+    fd.read_to_string(&mut content).unwrap();
     assert_eq!(expected_content.to_string(), content);
 
     fs::remove_file(outpath.as_path()).expect("Failed to delete test_task_start_sha file");
@@ -216,7 +216,7 @@ fn test_task_start_product_csv_writer_empty_rows(){
     assert_eq!(true, f_res.is_ok());
     let mut fd = f_res.unwrap();
     let mut content = String::new();
-    fd.read_to_string(&mut content);
+    fd.read_to_string(&mut content).unwrap();
     assert_eq!(expected_content.to_string(), content);
 
     fs::remove_file(outpath.as_path()).expect("Failed to delete test_task_start_sha file");

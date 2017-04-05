@@ -1,11 +1,11 @@
 use sha1::{Sha1};
 use sha2::{Sha512, Digest};
-use base64::{encode};
+use base64::encode;
 
 use std::io::prelude::*;
 use std::path::Path;
 use std::io;
-use std::fs::{self, File};
+use std::fs::File;
 
 use product::ProductSHA;
 
