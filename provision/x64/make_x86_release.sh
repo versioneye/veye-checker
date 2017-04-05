@@ -51,14 +51,14 @@ echo "Compiling release version"
 cd ${WORK_DIR}
 cargo build --release
 
-echo "Running acceptance tests against production release ..."
-cd ${TEST_DIR}
-export VERSIONEYE_BIN_PATH="../../target/release/veye_checker"
-bash tests.sh
-if [ $? -ne 0 ]; then
-    echo "Failed to pass acceptance tests on production release"
-    exit
-fi
+#echo "Running acceptance tests against production release ..."
+#cd ${TEST_DIR}
+#export VERSIONEYE_BIN_PATH="../../target/release/veye_checker"
+#bash tests.sh
+#if [ $? -ne 0 ]; then
+#    echo "Failed to pass acceptance tests on production release"
+#    exit
+#fi
 
 
 echo "release binary into ${RELEASE_PATH}"
