@@ -64,4 +64,4 @@ cargo build --release
 echo "release binary into ${RELEASE_PATH}"
 cd ${WORK_DIR}
 cargo build --release
-cp target/release/veye_checke ${RELEASE_PATH}
+cp target/release/veye_checker ${RELEASE_PATH}
