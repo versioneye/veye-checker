@@ -2,7 +2,7 @@ Vagrant.configure("2") do |config|
 
     #configure virtualmachine
     config.vm.box = "bento/ubuntu-16.10"
-    config.vm.synced_folder "../../binaries", "/media/releases"
+    config.vm.synced_folder "../../../releases", "/media/releases"
     config.vm.post_up_message = "Welcome to VeyeChecker linux build image"
     config.vm.provision "shell", path: "setup_ubuntu_box.sh", privileged: true
 

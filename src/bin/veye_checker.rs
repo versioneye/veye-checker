@@ -27,7 +27,7 @@ fn main() {
 
     //register options
     opts.optopt("o", "output", "specifies the name of output file", "FILENAME");
-    opts.optopt("a", "auth", "specifies api-key for API calls", "API_TOKEN");
+    opts.optopt("a", "auth", "specifies the api-key for API calls", "API_TOKEN");
     opts.optflag("h", "help", "shows usage help");
 
     //parse command-line arguments
@@ -43,7 +43,7 @@ fn main() {
     }
 
     if matches.free.len() < 1 {
-        println!("Error: Subcommand is unspecified");
+        println!("Error: missing the subcommand");
         show_usage(&program_name, opts).unwrap();
         return;
     }

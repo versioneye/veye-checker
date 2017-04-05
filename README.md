@@ -3,7 +3,7 @@
 
 [![Join the chat at Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/veye_checker/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
 
-It's a command-line util that scans packaged binaries (`*.nupkg, *.Jar`) and resolves their SHA digest values into package information.
+It's a command-line util that scans packaged binaries (`*.nupkg, *.Jar`) and resolves their SHA digest values into the package information.
 
 One can use this utility to lookup package version details, license, vulnerability details or automate due diligence process without installing any runtime or additional dependencies.
  
@@ -18,7 +18,7 @@ curl -s -L -o "${HOME}/bin/veye_checker"  https://github.com/versioneye/veye-che
 chmod a+x ~/bin/veye_checker
 ```
 
-* **resolve** - scans the target folder recursively, translates filedigest via VersionEye API into product details and prints out results.
+* **resolve** - scans the target folder recursively, translates a value of a file digest via VersionEye API into the product details and prints out results.
 
 ```
 veye_checker resolve ../jars -a "api-key"
@@ -42,11 +42,12 @@ VERSIONEYE_API_KEY="apikey" veye_checker lookup <SHA_STRING>
 
 ## API keys
 
-All the commands ( *lookup*, *resolve*, etc ) requesting data from the  [VersionEye api](https://www.versioneye.com/api/v2) require the API-key, which you can obtain from [your's profile page](https://www.versioneye.com/organisations/private/apikey).
+All the commands ( *lookup*, *resolve*, etc ) requesting data from the  [VersionEye api](https://www.versioneye.com/api/v2) require the API-key,
+which you can obtain from [your's profile page](https://www.versioneye.com/organisations/private/apikey).
 
 It's possible to specify the api-key 3 ways:
 
-* via environment variable `VERSIONEYE-API-KEY` 
+* via environment variable `VERSIONEYE_API_KEY` 
 
 ```
 export VERSIONEYE_API_KEY="abcdef1234" veye_checker lookup SHA_VALUE_123
@@ -104,7 +105,8 @@ or simpler command
 
 or running tests
 > cargo test
-#test only api-calls
+
+#test only api-calls 
 > VERSIONEYE_API_KEY="APIKEY" cargo test --features "api"
 
 or optimized production release

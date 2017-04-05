@@ -4,7 +4,6 @@ use base64::encode;
 
 use std::io::prelude::*;
 use std::path::Path;
-use std::io;
 use std::fs::File;
 
 use product::ProductSHA;
