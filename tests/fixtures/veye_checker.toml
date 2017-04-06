@@ -3,3 +3,8 @@ host = "api.toml.com"
 path = "api/v3"
 key  = "def-234"
 port = 8090
+
+[csv]
+separator   = ","
+quote       = "'"
+flexible    = false

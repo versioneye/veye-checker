@@ -5,7 +5,6 @@ use std::io::{Read, Error, ErrorKind};
 use std::path::Path;
 use std::fs::File;
 use serde::{Serialize, Deserialize};
-//use serde_derive;
 use toml;
 
 
@@ -41,20 +40,54 @@ impl Default for ApiConfigs {
     }
 }
 
+//-- CSVConfigs ---------------------------------------------------------------
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CSVConfigs {
+    pub separator: Option<String>,
+    pub quote: Option<String>, // which character to use for quoted string
+    pub flexible: Option<bool>, //doesnt include empty fields. None = False, only Some(true) is true
+}
+
+impl CSVConfigs {
+    //copies fields values into target only if it's not None value and overwrites existing value
+    fn merge_to(&self, target: &mut CSVConfigs){
+        if self.separator.is_some() { target.separator = self.separator.clone(); }
+        if self.quote.is_some() { target.quote = self.quote.clone(); }
+        if self.flexible.is_some() { target.flexible = self.flexible.clone(); }
+    }
+}
+
+impl Default for CSVConfigs {
+    fn default() -> CSVConfigs {
+        CSVConfigs {
+            separator: Some(";".to_string()),
+            quote: Some("\"".to_string()),
+            flexible: Some(false)
+        }
+    }
+}
+
+//-- Configs ------------------------------------------------------------------
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Configs {
-    pub api: ApiConfigs
+    pub api: ApiConfigs,
+    pub csv: CSVConfigs
 }
 
 impl Configs {
     fn merge_to(&self, target: &mut Configs) {
         self.api.merge_to(&mut target.api);
+        self.csv.merge_to(&mut target.csv);
     }
 }
 
 impl Default for Configs {
     fn default() -> Configs {
-        Configs { api: ApiConfigs::default() }
+        Configs {
+            api: ApiConfigs::default(),
+            csv: CSVConfigs::default()
+        }
     }
 }
 
@@ -69,7 +102,7 @@ pub fn read_configs() -> Configs {
         Err(_)          => ()
     }
 
-    match read_api_configs_from_env() {
+    match read_configs_from_env() {
         Ok(env_confs)  => env_confs.merge_to(&mut confs),
         Err(_)         => ()
     }
@@ -77,21 +110,50 @@ pub fn read_configs() -> Configs {
     confs
 }
 
-pub fn read_api_configs_from_env() -> Result<Configs, Error> {
+pub fn read_configs_from_env() -> Result<Configs, Error> {
     let re_api_key = Regex::new(r"\AVERSIONEYE_API_(\w+)\z").unwrap();
+    let re_csv_key = Regex::new(r"\AVERSIONEYE_CSV_(\w+)\z").unwrap();
+
     let mut configs = Configs::default();
 
     for (key, val) in env::vars() {
         if let Some(m) = re_api_key.captures(&key) {
+            let api_val = val.clone();
+
             match m.get(1).unwrap().as_str() {
-                "KEY"    => configs.api.key = Some(val),
-                "HOST"   => configs.api.host = Some(val),
-                "PORT"   => configs.api.port = val.parse::<u32>().ok(),
-                "PATH"   => configs.api.path = Some(val),
-                "SCHEME" => configs.api.scheme = Some(val),
+                "KEY"    => configs.api.key = Some(api_val),
+                "HOST"   => configs.api.host = Some(api_val),
+                "PORT"   => configs.api.port = api_val.parse::<u32>().ok(),
+                "PATH"   => configs.api.path = Some(api_val),
+                "SCHEME" => configs.api.scheme = Some(api_val),
                 _ => ()
             }
-        }
+        };
+
+        //read csv configs
+        if let Some(m) = re_csv_key.captures(&key) {
+            let csv_val = val.clone();
+
+            match m.get(1).unwrap().as_str() {
+                "SEPARATOR" => configs.csv.separator = Some(csv_val),
+                "QUOTE"     => configs.csv.quote = Some(csv_val),
+                "FLEXIBLE"  => {
+                    let flex_val = csv_val.clone().to_string().to_lowercase();
+                    let flex_val2 = csv_val.clone().to_string().to_lowercase();
+                    let is_flexible = match flex_val.as_str() {
+                        "1"     => true,
+                        "t"     => true,
+                        "true"  => true,
+                        _       => false
+                    };
+
+                    println!("Flexible value from ENV: {} => {}", flex_val2, is_flexible.clone());
+
+                    configs.csv.flexible = Some(is_flexible)
+                },
+                _ => () //ignore unsupported csv keys
+            }
+        };
     }
 
     Ok(configs)

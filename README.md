@@ -78,6 +78,9 @@ It's possible to tweak a setting of the command-line tool with environmental var
 | VERSIONEYE\_API\_PATH | api/v2        | specifies URL path between the host and REST resource |
 | VERSIONEYE\_API\_PORT | None          | specifies port number for API |
 | VERSIONEYE\_API\_SCHEME | https       | specifies URI scheme |
+| VERSIONEYE\_CSV\_SEPARATOR| ;         | overrides separator in output row, can be only single character|
+| VERSIONEYE\_CSV\_QUOTE | \"           | what character to use for quoting, can be only single character |
+| VERSIONEYE\_CSV\_FLEXIBLE| false      | should it skip empty fields at the end, accepted values 1, T, TRUE to activate; all other values equal to FALSE |
 
 ## Configuration via config file
 
@@ -91,6 +94,11 @@ host = "www.versioneye.com"
 path = "api/v2"
 port = 80
 scheme = "https"
+
+[csv]
+separator = ","
+quote     = "'"
+flexible  = 0
 
 ```
 

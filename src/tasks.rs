@@ -1,9 +1,11 @@
 extern crate csv;
 
+use std::fs;
+use std::vec;
 use std::path::PathBuf;
 use std::thread;
 use std::sync::mpsc::{channel, Receiver, Sender};
-use std::io::{self, ErrorKind};
+use std::io::{self, ErrorKind, Write};
 use std::error::Error;
 
 use walkdir::WalkDir;
@@ -115,12 +117,70 @@ pub fn start_sha_fetcher(api_configs: configs::ApiConfigs, sha_ch:  Receiver<Pro
     (receiver, handle)
 }
 
-pub fn start_product_csv_writer(outpath: PathBuf, product_ch: Receiver<ProductMatch>)
-    -> thread::JoinHandle< Result<(), csv::Error> > {
+fn init_csv_file_writer(outpath: PathBuf, csv_configs: configs::CSVConfigs)
+    ->  csv::Writer<fs::File> {
+    let mut wtr = csv::Writer::from_file(outpath).expect("Failed to open output file");
+
+    if let Some(sep) = csv_configs.separator {
+        let ch = if sep.len() > 0 {
+            sep.as_bytes()[0]
+        } else {
+            ";".as_bytes()[0]
+        };
+
+        wtr = wtr.delimiter(ch);
+    }
+
+    if let Some(quote) = csv_configs.quote {
+        let ch2 = if quote.len() > 0 {
+            quote.as_bytes()[0]
+        } else {
+            "\"".as_bytes()[0]
+        };
+
+        wtr = wtr.quote(ch2);
+    }
+
+    if let Some(is_flex) = csv_configs.flexible { wtr = wtr.flexible(is_flex); };
+
+    wtr
+}
+
+fn init_csv_stdio_writer(csv_configs: configs::CSVConfigs) -> csv::Writer<vec::Vec<u8>> {
+    let mut wtr = csv::Writer::from_memory();
+
+    if let Some(sep) = csv_configs.separator {
+        let ch = if sep.len() > 0 {
+            sep.as_bytes()[0]
+        } else {
+            ";".as_bytes()[0]
+        };
+
+        wtr = wtr.delimiter(ch);
+    }
+
+    if let Some(quote) = csv_configs.quote {
+        let ch2 = if quote.len() > 0 {
+            quote.as_bytes()[0]
+        } else {
+            "\"".as_bytes()[0]
+        };
+
+        wtr = wtr.quote(ch2);
+    }
+
+    if let Some(is_flex) = csv_configs.flexible { wtr = wtr.flexible(is_flex); };
+
+    wtr
+}
+
+pub fn start_product_csv_writer(
+    outpath: PathBuf, csv_configs: configs::CSVConfigs, product_ch: Receiver<ProductMatch>
+) -> thread::JoinHandle< Result<(), csv::Error> > {
 
     thread::spawn(move || {
         let mut n = 0u32;
-        let mut wtr = csv::Writer::from_file(outpath).expect("Failed to open output file");
+        let mut wtr = init_csv_file_writer(outpath, csv_configs);
 
         println!();
         for product in product_ch.into_iter() {
@@ -142,14 +202,15 @@ pub fn start_product_csv_writer(outpath: PathBuf, product_ch: Receiver<ProductMa
 
 }
 
-pub fn start_product_stdio_writer(product_ch: Receiver<ProductMatch>)
-    -> thread::JoinHandle<Result<(), csv::Error >> {
+pub fn start_product_stdio_writer(
+    csv_configs: configs::CSVConfigs, product_ch: Receiver<ProductMatch>
+) -> thread::JoinHandle<Result<(), csv::Error >> {
 
     thread::spawn(move || {
         let mut n = 0u32;
 
         for product in product_ch.into_iter() {
-            let mut wtr = csv::Writer::from_memory();
+            let mut wtr = init_csv_stdio_writer(csv_configs.clone());
 
             if n == 0 {
                 wtr.encode(product.to_fields()).unwrap();
@@ -168,12 +229,12 @@ pub fn start_product_stdio_writer(product_ch: Receiver<ProductMatch>)
 }
 
 
-pub fn start_sha_csv_writer(outpath: PathBuf, sha_ch: Receiver<ProductSHA>)
+pub fn start_sha_csv_writer(outpath: PathBuf, csv_configs: configs::CSVConfigs, sha_ch: Receiver<ProductSHA>)
     -> thread::JoinHandle< Result<(), csv::Error> > {
 
     thread::spawn(move || {
         let mut n = 0u32;
-        let mut wtr = csv::Writer::from_file(outpath).expect("Failed to open output file");
+        let mut wtr = init_csv_file_writer(outpath, csv_configs);
 
         println!();
         for sha in sha_ch.into_iter() {
@@ -195,14 +256,14 @@ pub fn start_sha_csv_writer(outpath: PathBuf, sha_ch: Receiver<ProductSHA>)
 
 }
 
-pub fn start_sha_stdio_writer(sha_ch: Receiver<ProductSHA>)
+pub fn start_sha_stdio_writer(csv_configs: configs::CSVConfigs, sha_ch: Receiver<ProductSHA>)
     -> thread::JoinHandle<Result<(), csv::Error >> {
 
     thread::spawn(move || {
         let mut n = 0u32;
 
         for sha in sha_ch.into_iter() {
-            let mut wtr = csv::Writer::from_memory();
+            let mut wtr = init_csv_stdio_writer(csv_configs.clone());
 
             if n == 0 {
                 wtr.encode(sha.to_fields()).unwrap();

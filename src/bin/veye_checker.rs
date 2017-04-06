@@ -84,9 +84,9 @@ fn do_resolve_task(matches: &getopts::Matches) -> Result<bool, String> {
     let h3 = match matches.opt_str("o") {
         Some(out_path) => {
             let out_path = PathBuf::from(out_path);
-            tasks::start_product_csv_writer(out_path, product_ch)
+            tasks::start_product_csv_writer(out_path, global_configs.csv.clone(), product_ch)
         },
-        None => tasks::start_product_stdio_writer(product_ch)
+        None => tasks::start_product_stdio_writer(global_configs.csv.clone(), product_ch)
     };
 
     h1.join().expect("resolve_task: failed to finish scan task").unwrap();
@@ -99,21 +99,22 @@ fn do_resolve_task(matches: &getopts::Matches) -> Result<bool, String> {
 
 
 fn do_shas_task(matches: &getopts::Matches) -> Result<bool, String> {
+    let mut global_configs = configs::read_configs();
     //extract input arguments
     let dir_txt = if matches.free.len() != 2 {
         panic!("scan command misses a path to folder".to_string());
     } else {
         matches.free[1].clone()
     };
-
     let dir = PathBuf::from(&dir_txt);
+
     let (sha_ch, h1) = tasks::start_path_scanner(dir);
     let h2 = match matches.opt_str("o") {
         Some(outfile_path) => {
             let outpath = PathBuf::from(&outfile_path);
-            tasks::start_sha_csv_writer(outpath, sha_ch)
+            tasks::start_sha_csv_writer(outpath, global_configs.csv.clone(), sha_ch)
         },
-        None => tasks::start_sha_stdio_writer(sha_ch)
+        None => tasks::start_sha_stdio_writer(global_configs.csv.clone(), sha_ch)
 
     };
 
@@ -151,9 +152,9 @@ fn do_lookup_task(matches: &getopts::Matches) -> Result<bool, String> {
     let h3 = match matches.opt_str("o") {
         Some(outfile_path) => {
             let outpath = PathBuf::from(&outfile_path);
-            tasks::start_product_csv_writer(outpath, prod_ch)
+            tasks::start_product_csv_writer(outpath, global_configs.csv.clone(), prod_ch)
         },
-        None => tasks::start_product_stdio_writer(prod_ch)
+        None => tasks::start_product_stdio_writer(global_configs.csv.clone(), prod_ch)
     };
 
     h1.join().expect("lookup: failed to prepare sha value for request").unwrap();

@@ -123,15 +123,16 @@ fn test_api_task_start_sha_fetcher_sha_dont_exists(){
 
 #[test]
 fn test_task_start_sha_csv_writer(){
+    let confs = configs::read_configs();
     let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
     let test_shas = vec![
         product::ProductSHA::from_sha(file_sha.to_string())
     ];
     let outpath = PathBuf::from("temp/test_task_sha_writer.csv");
-    let expected_content = "filepath,packaging,sha_method,sha_value\n,,,5675fd96b29656504b86029551973d60fb41339b\n";
+    let expected_content = "filepath;packaging;sha_method;sha_value\n;;;5675fd96b29656504b86029551973d60fb41339b\n";
 
     let (sha_ch, h1) = tasks::start_sha_publisher(test_shas);
-    let h2 = tasks::start_sha_csv_writer(outpath.clone(), sha_ch);
+    let h2 = tasks::start_sha_csv_writer(outpath.clone(), confs.csv, sha_ch);
 
     let res1 = h1.join().unwrap();
     assert_eq!(true, res1.is_ok());
@@ -150,12 +151,13 @@ fn test_task_start_sha_csv_writer(){
 
 #[test]
 fn test_task_start_sha_csv_writer_empty_input(){
+    let confs = configs::read_configs();
     let test_shas = vec![];
     let outpath = PathBuf::from("temp/test_task_sha_writer_empty.csv");
     let expected_content = "";
 
     let (sha_ch, h1) = tasks::start_sha_publisher(test_shas);
-    let h2 = tasks::start_sha_csv_writer(outpath.clone(), sha_ch);
+    let h2 = tasks::start_sha_csv_writer(outpath.clone(), confs.csv, sha_ch);
 
     let res1 = h1.join().unwrap();
     assert_eq!(true, res1.is_ok());
@@ -175,13 +177,13 @@ fn test_task_start_sha_csv_writer_empty_input(){
 #[test]
 fn test_task_start_product_csv_writer(){
     let outpath = PathBuf::from("temp/test_task_product_writer.csv");
-    let test_prods = vec![
-        product::ProductMatch::empty()
-    ];
-    let expected_content = "filepath,packaging,sha_method,sha_value,language,prod_key,version,n_vulns,product_url,license,error\n,,,,,,,0,,unknown,\n";
+    let confs = configs::read_configs();
+
+    let test_prods = vec![ product::ProductMatch::empty() ];
+    let expected_content = "filepath;packaging;sha_method;sha_value;language;prod_key;version;n_vulns;product_url;license;error\n;;;;;;;0;;unknown;\n";
 
     let (prod_ch, h1) = tasks::start_product_match_publisher(test_prods);
-    let h2 = tasks::start_product_csv_writer(outpath.clone(), prod_ch);
+    let h2 = tasks::start_product_csv_writer(outpath.clone(), confs.csv, prod_ch);
 
     let res1 = h1.join().unwrap();
     assert_eq!(true, res1.is_ok());
@@ -203,9 +205,10 @@ fn test_task_start_product_csv_writer_empty_rows(){
     let outpath = PathBuf::from("temp/test_task_product_writer_empty.csv");
     let test_prods = vec![];
     let expected_content = "";
+    let confs = configs::read_configs();
 
     let (prod_ch, h1) = tasks::start_product_match_publisher(test_prods);
-    let h2 = tasks::start_product_csv_writer(outpath.clone(), prod_ch);
+    let h2 = tasks::start_product_csv_writer(outpath.clone(), confs.csv, prod_ch);
 
     let res1 = h1.join().unwrap();
     assert_eq!(true, res1.is_ok());
