@@ -3,8 +3,8 @@ extern crate csv;
 use std::path::PathBuf;
 use std::thread;
 use std::sync::mpsc::{channel, Receiver, Sender};
-use std::io::{self, Error, ErrorKind};
-
+use std::io::{self, ErrorKind};
+use std::error::Error;
 
 use walkdir::WalkDir;
 
@@ -21,7 +21,8 @@ pub fn start_path_scanner(dir: PathBuf)
     let handle = thread::spawn(move || {
         if dir.exists() == false {
             return Err(
-              Error::new(ErrorKind::Other, "Scannable folder doesnt exists")
+              io::Error::new(ErrorKind::Other, "Scannable folder doesnt exists")
+
             );
         }
 
@@ -94,10 +95,11 @@ pub fn start_sha_fetcher(api_configs: configs::ApiConfigs, sha_ch:  Receiver<Pro
                     m.sha = Some(sha); //attach original sha document to have filepath data
                     m
                 },
-                Err(_) => {
+                Err(e) => {
                     //use empty product, so non-matched products will show up in output file
                     let mut m = ProductMatch::empty();
                     m.sha = Some(sha);
+                    m.error = Some(e.description().to_string()); //attach error message 
                     m
                 }
             };
