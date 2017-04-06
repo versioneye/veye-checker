@@ -99,7 +99,7 @@ pub fn start_sha_fetcher(api_configs: configs::ApiConfigs, sha_ch:  Receiver<Pro
                     //use empty product, so non-matched products will show up in output file
                     let mut m = ProductMatch::empty();
                     m.sha = Some(sha);
-                    m.error = Some(e.description().to_string()); //attach error message 
+                    m.error = Some(e.description().to_string()); //attach error message
                     m
                 }
             };
