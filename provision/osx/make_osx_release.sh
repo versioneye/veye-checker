@@ -11,7 +11,7 @@ if [[ -n "$RELEASE_VERSION" ]]; then
     RELEASE_VERSION="_build_${TIMESTAMP}"
 fi
 
-RELEASE_PATH="${RELEASE_DIR}/veye_checker_x86_64_${RELEASE_VERSION}"
+RELEASE_PATH="${RELEASE_DIR}/veye_checker_osx_${RELEASE_VERSION}"
 
 if [ ! -d "$WORK_DIR" ]; then
     git clone ${REPO_URL}
