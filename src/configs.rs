@@ -2,7 +2,7 @@ use std::env;
 use regex::Regex;
 use std::default::{Default};
 use std::io::{Read, Error, ErrorKind};
-use std::path::Path;
+use std::path::PathBuf;
 use std::fs::File;
 use serde::{Serialize, Deserialize};
 use toml;
@@ -92,20 +92,21 @@ impl Default for Configs {
 }
 
 
-pub fn read_configs() -> Configs {
-    let conf_file = Path::new("veye_checker.toml");
+pub fn read_configs(filepath: Option<String>) -> Configs {
+    let conf_filepath = filepath.unwrap_or("veye_checker.toml".to_string());
+    let conf_file = PathBuf::from(conf_filepath.clone());
     let mut confs = Configs::default();
 
     //all every config reader overwrites previous values
-    match read_configs_from_toml(conf_file) {
+    match read_configs_from_toml(&conf_file) {
         Ok(toml_confs)  => toml_confs.merge_to(&mut confs),
         Err(_)          => ()
-    }
+    };
 
     match read_configs_from_env() {
         Ok(env_confs)  => env_confs.merge_to(&mut confs),
         Err(_)         => ()
-    }
+    };
 
     confs
 }
@@ -139,15 +140,12 @@ pub fn read_configs_from_env() -> Result<Configs, Error> {
                 "QUOTE"     => configs.csv.quote = Some(csv_val),
                 "FLEXIBLE"  => {
                     let flex_val = csv_val.clone().to_string().to_lowercase();
-                    let flex_val2 = csv_val.clone().to_string().to_lowercase();
                     let is_flexible = match flex_val.as_str() {
                         "1"     => true,
                         "t"     => true,
                         "true"  => true,
                         _       => false
                     };
-
-                    println!("Flexible value from ENV: {} => {}", flex_val2, is_flexible.clone());
 
                     configs.csv.flexible = Some(is_flexible)
                 },
@@ -159,7 +157,7 @@ pub fn read_configs_from_env() -> Result<Configs, Error> {
     Ok(configs)
 }
 
-pub fn read_configs_from_toml(file_path: &Path) -> Result<Configs, Error> {
+pub fn read_configs_from_toml(file_path: &PathBuf) -> Result<Configs, Error> {
     //todo: check does the file exists
     let mut toml_file = File::open(file_path)?;
     let mut toml_txt = String::new();

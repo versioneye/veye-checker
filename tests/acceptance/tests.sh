@@ -18,7 +18,8 @@ FILE_SHA="5675fd96b29656504b86029551973d60fb41339b"
 
 echo "#-- Going to execute acceptance tests"
 echo "#-- shas command"
-assert "exec ${VERSIONEYE_BIN_PATH} shas ${FIXTURES_PATH}" "filepath,packaging,sha_method,sha_value\n../fixtures/files/test.nupkg,nupkg,sha512,U82mHQSKaIk+lpSVCbWYKNavmNH1i5xrExDEquU1i6I5pV6UMOqRnJRSlKO3cMPfcpp0RgDY+8jUXHdQ4IfXvw==\n../fixtures/files/test.jar,jar,sha1,5675fd96b29656504b86029551973d60fb41339b\nDone!"
+assert "exec ${VERSIONEYE_BIN_PATH} shas ${FIXTURES_PATH}" \
+ "filepath,packaging,sha_method,sha_value\n../fixtures/files/test.nupkg,nupkg,sha512,U82mHQSKaIk+lpSVCbWYKNavmNH1i5xrExDEquU1i6I5pV6UMOqRnJRSlKO3cMPfcpp0RgDY+8jUXHdQ4IfXvw==\n../fixtures/files/test.jar,jar,sha1,5675fd96b29656504b86029551973d60fb41339b\nDone!"
 
 echo "#-- lookup command"
 assert "exec ${VERSIONEYE_BIN_PATH} lookup ${FILE_SHA}" \

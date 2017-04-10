@@ -58,7 +58,7 @@ fn test_task_start_sha_publisher_with_empty_array(){
 #[cfg(feature="api")]
 fn test_api_task_start_sha_fetcher(){
     let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
-    let confs = configs::read_configs(); //dont forget to specify API_KEY
+    let confs = configs::read_configs(None); //dont forget to specify API_KEY
     let test_shas = vec![
         product::ProductSHA::from_sha(file_sha.to_string())
     ];
@@ -95,7 +95,7 @@ fn test_api_task_start_sha_fetcher(){
 #[cfg(feature="api")]
 fn test_api_task_start_sha_fetcher_sha_dont_exists(){
     let file_sha = "abc-123-dont-exists";
-    let confs = configs::read_configs();
+    let confs = configs::read_configs(None);
     let test_shas = vec![
         product::ProductSHA::from_sha(file_sha.to_string())
     ];
@@ -123,7 +123,7 @@ fn test_api_task_start_sha_fetcher_sha_dont_exists(){
 
 #[test]
 fn test_task_start_sha_csv_writer(){
-    let confs = configs::read_configs();
+    let confs = configs::read_configs(None);
     let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
     let test_shas = vec![
         product::ProductSHA::from_sha(file_sha.to_string())
@@ -151,7 +151,7 @@ fn test_task_start_sha_csv_writer(){
 
 #[test]
 fn test_task_start_sha_csv_writer_empty_input(){
-    let confs = configs::read_configs();
+    let confs = configs::read_configs(None);
     let test_shas = vec![];
     let outpath = PathBuf::from("temp/test_task_sha_writer_empty.csv");
     let expected_content = "";
@@ -177,7 +177,7 @@ fn test_task_start_sha_csv_writer_empty_input(){
 #[test]
 fn test_task_start_product_csv_writer(){
     let outpath = PathBuf::from("temp/test_task_product_writer.csv");
-    let confs = configs::read_configs();
+    let confs = configs::read_configs(None);
 
     let test_prods = vec![ product::ProductMatch::empty() ];
     let expected_content = "filepath;packaging;sha_method;sha_value;language;prod_key;version;n_vulns;product_url;license;error\n;;;;;;;0;;unknown;\n";
@@ -205,7 +205,7 @@ fn test_task_start_product_csv_writer_empty_rows(){
     let outpath = PathBuf::from("temp/test_task_product_writer_empty.csv");
     let test_prods = vec![];
     let expected_content = "";
-    let confs = configs::read_configs();
+    let confs = configs::read_configs(None);
 
     let (prod_ch, h1) = tasks::start_product_match_publisher(test_prods);
     let h2 = tasks::start_product_csv_writer(outpath.clone(), confs.csv, prod_ch);

@@ -17,7 +17,7 @@ fn test_api_encoding_product_key(){
 fn test_api_call_fetch_product_by_sha(){
 
     let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
-    let confs = configs::read_configs();
+    let confs = configs::read_configs(None);
 
     let res = api::fetch_product_by_sha(&confs.api, file_sha).expect("Failed fetch SHA");
 
@@ -44,7 +44,7 @@ fn test_api_call_fetch_product_by_sha(){
 #[test]
 #[cfg(feature="api")]
 fn test_api_call_fetch_product(){
-    let confs = configs::read_configs();
+    let confs = configs::read_configs(None);
     let res = api::fetch_product(
         &confs.api, "Java", "commons-beanutils/commons-beanutils", "1.7.0"
     ).expect("Failed to fetch product details");
@@ -64,7 +64,7 @@ fn test_api_call_fetch_product(){
 #[cfg(feature="api")]
 fn test_api_call_fetch_product_details_by_sha(){
     let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
-    let confs = configs::read_configs();
+    let confs = configs::read_configs(None);
 
     let res = api::fetch_product_by_sha(&confs.api, file_sha).expect("Failed fetch SHA");
 

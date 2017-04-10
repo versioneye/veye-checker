@@ -21,7 +21,7 @@ chmod a+x ~/bin/veye_checker
 * **resolve** - scans the target folder recursively, translates a value of a file digest via VersionEye API into the product details and prints out results.
 
 ```
-veye_checker resolve ../jars -a "api-key"
+veye_checker resolve ../jars -a "api-key" -c "confs/veye_checker_local.toml"
 VERSIONEYE_API_KEY="apitoken" veye_checker resolve ../jars
 veye_checker resolve ../jars -o resolve.csv -a "api-key"
 ```
@@ -31,6 +31,7 @@ veye_checker resolve ../jars -o resolve.csv -a "api-key"
 ```bash
 veye_checker shas ../jars/ 
 veye_checker shas ../jars/ -o results.csv
+VERSIONEYE_CSV_SEPARATOR="," veye_checker shas temp/bins/
 ```
 
 * **lookup** - fetches product details from VersionEye api by the SHA/digest value.
@@ -84,7 +85,11 @@ It's possible to tweak a setting of the command-line tool with environmental var
 
 ## Configuration via config file
 
-One can put permanent configurations for the `veye_checker` tool into  `veye_checker.toml` file. All the fields in the configuration file are optional, and the commandline tool will use default values for unspecified fields.
+One can also put permanent configurations for the `veye_checker` tool into a `veye_checker.toml` file.
+By default the tool will lookup configuration file in the working directory, but you can always specify
+location with the `-c` flag after command.
+
+All the fields in the configuration file are optional, and the commandline tool will use default values for unspecified fields.
 
 ```toml
 # veye_checker.toml

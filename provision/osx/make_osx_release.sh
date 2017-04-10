@@ -27,7 +27,8 @@ if [ ! -d "temp" ]; then
 fi
 
 echo "Running unit-tests"
-cargo test
+#due the configs_test it must be single threaded to avoid conflicts in ENV var
+cargo test -- --test-threads=1
 if [ $? -ne 0 ]; then
     echo "Failed to pass unit tests"
     exit

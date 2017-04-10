@@ -4,8 +4,8 @@ use std::fs;
 use std::vec;
 use std::path::PathBuf;
 use std::thread;
-use std::sync::mpsc::{channel, Receiver, Sender};
-use std::io::{self, ErrorKind, Write};
+use std::sync::mpsc::{channel, Receiver};
+use std::io::{self, ErrorKind};
 use std::error::Error;
 
 use walkdir::WalkDir;

@@ -25,9 +25,10 @@ fn main() {
     let program_name = args[0].clone();
     let mut opts = Options::new();
 
-    //register options
+    //register options flags
     opts.optopt("o", "output", "specifies the name of output file", "FILENAME");
     opts.optopt("a", "auth", "specifies the api-key for API calls", "API_TOKEN");
+    opts.optopt("c", "config", "specifies the filepath to lookup configfile", "FILEPATH");
     opts.optflag("h", "help", "shows usage help");
 
     //parse command-line arguments
@@ -65,7 +66,8 @@ fn do_resolve_task(matches: &getopts::Matches) -> Result<bool, String> {
     } else {
         matches.free[1].clone()
     };
-    let mut global_configs = configs::read_configs();
+    let mut global_configs = configs::read_configs(matches.opt_str("c"));
+
     //override global configs when use attached commandline key
     if global_configs.api.key.is_none() && matches.opt_str("a").is_some() {
         global_configs.api.key = matches.opt_str("a")
@@ -99,7 +101,8 @@ fn do_resolve_task(matches: &getopts::Matches) -> Result<bool, String> {
 
 
 fn do_shas_task(matches: &getopts::Matches) -> Result<bool, String> {
-    let mut global_configs = configs::read_configs();
+    let global_configs = configs::read_configs(matches.opt_str("c"));
+
     //extract input arguments
     let dir_txt = if matches.free.len() != 2 {
         panic!("scan command misses a path to folder".to_string());
@@ -132,7 +135,7 @@ fn do_lookup_task(matches: &getopts::Matches) -> Result<bool, String> {
         matches.free[1].clone()
     };
 
-    let mut global_configs = configs::read_configs();
+    let mut global_configs = configs::read_configs(matches.opt_str("c"));
     //override api key when it was specified via -a flag
     if global_configs.api.key.is_none() && matches.opt_str("a").is_some() {
         global_configs.api.key = matches.opt_str("a")

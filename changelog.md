@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased] - 2017-04-xx
 ### Added
 
+- add `-c` flag to override default location of configuration file
 - add `shas` command to calculate checksums of the binaries
 - add `lookup` command to lookup a product details by a file digest
 - add `resolve` command to shazam package binary into details
@@ -22,5 +23,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - issue #12, error message was missing from output
 - issue #7, execution raised panic when API response didnt match schema
 - issue #1, show API errors in final output without stopping processing
+- temporary fix for configs_test, which sometimes fail due the fact the manipulating ENV vars may have read/delete conflicts.
 
 
