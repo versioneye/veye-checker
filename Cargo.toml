@@ -7,6 +7,7 @@ authors = ["timgluz <sulg@versioneye.com>", "reiz@versioneye.com"]
 sha1            = "^0.2.0"
 sha2            = "^0.4.2"
 base64          = "^0.3.0"
+md5             = "^0.3"
 getopts         = "^0.2"
 hyper           = "^0.10"
 rustc-serialize = "^0.3"

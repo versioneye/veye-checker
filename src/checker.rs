@@ -1,6 +1,7 @@
 use sha1::{Sha1};
 use sha2::{Sha512, Digest};
 use base64::encode;
+use md5;
 
 use std::io::prelude::*;
 use std::path::Path;
@@ -43,6 +44,21 @@ pub fn digest_nupkg(filepath: &Path) -> ProductSHA {
     }
 }
 
+pub fn digest_pypi(filepath: &Path) -> ProductSHA {
+    let mut f = File::open(filepath).ok().expect("Failed to open python package for digest");
+    let mut buffer = Vec::new();
+
+    f.read_to_end(&mut buffer).expect("Failed to read python package into buffer");
+    let md5_val = md5::compute(buffer);
+
+    ProductSHA {
+        packaging: "pypi".to_string(),
+        method: "md5".to_string(),
+        value: format!("{:x}", md5_val),
+        filepath: Some(filepath.to_str().unwrap_or("").to_string())
+    }
+}
+
 // founds the right encoder based on the filepath
 // returns None when filetype is unsupported
 pub fn digest_file(filepath: &Path) -> Option<ProductSHA> {
@@ -54,9 +70,11 @@ pub fn digest_file(filepath: &Path) -> Option<ProductSHA> {
     let file_ext = opt_ext.unwrap().to_str().unwrap_or("");
 
     match file_ext {
-        "nupkg" => Some(digest_nupkg(filepath)),
-        "jar"   => Some(digest_jar(filepath)),
-        _       => None
+        "nupkg"     => Some(digest_nupkg(filepath)),
+        "jar"       => Some(digest_jar(filepath)),
+        "gz"        => Some(digest_pypi(filepath)),
+        "whl"       => Some(digest_pypi(filepath)),
+        _           => None
     }
 }
 

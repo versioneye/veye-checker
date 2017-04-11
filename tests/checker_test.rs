@@ -13,7 +13,7 @@ fn digest_jar_test(){
     assert_eq!("jar".to_string(), prod_sha.packaging);
     assert_eq!("sha1".to_string(), prod_sha.method);
     assert_eq!(correct_sha, prod_sha.value);
-    assert_eq!(true, prod_sha.filepath.is_some())
+    assert!(prod_sha.filepath.is_some())
 }
 
 #[test]
@@ -26,7 +26,32 @@ fn digest_nupkg_test(){
     assert_eq!("nupkg".to_string(), prod_sha.packaging);
     assert_eq!("sha512".to_string(), prod_sha.method);
     assert_eq!(correct_sha, prod_sha.value);
-    assert_eq!(true, prod_sha.filepath.is_some());
+    assert!(prod_sha.filepath.is_some());
+}
+
+
+#[test]
+fn digest_pypi_test(){
+    let file_path = Path::new("tests/fixtures/files/pypi.tar.gz");
+    let correct_md5 = "fe7daf822f1d36d1bd37ac41cf5817e7".to_string();
+    let prod_sha = checker::digest_pypi(&file_path);
+
+    assert_eq!("pypi".to_string(), prod_sha.packaging);
+    assert_eq!("md5".to_string(), prod_sha.method);
+    assert_eq!(correct_md5, prod_sha.value);
+    assert!(prod_sha.filepath.is_some());
+}
+
+#[test]
+fn digest_pypi_whl_test(){
+    let file_path = Path::new("tests/fixtures/files/pypi.whl");
+    let correct_md5 = "ffa1ee60be515c04b4c13fd13feea27a".to_string();
+    let prod_sha = checker::digest_pypi(&file_path);
+
+    assert_eq!("pypi".to_string(), prod_sha.packaging);
+    assert_eq!("md5".to_string(), prod_sha.method);
+    assert_eq!(correct_md5, prod_sha.value);
+    assert!(prod_sha.filepath.is_some());
 }
 
 //it should correctly dispatch the nupkg-digestor
@@ -39,7 +64,7 @@ fn digest_file_nupkg_test(){
         assert_eq!("nupkg".to_string(), prod_sha.packaging);
         assert_eq!("sha512".to_string(), prod_sha.method);
         assert_eq!(correct_sha, prod_sha.value);
-        assert_eq!(true, prod_sha.filepath.is_some());
+        assert!(prod_sha.filepath.is_some());
     } else {
         assert_eq!("", "It didnt return any product sha value");
     }
@@ -55,10 +80,41 @@ fn digest_file_jar_test(){
         assert_eq!("jar".to_string(), prod_sha.packaging);
         assert_eq!("sha1".to_string(), prod_sha.method);
         assert_eq!(correct_sha, prod_sha.value);
-        assert_eq!(true, prod_sha.filepath.is_some())
+        assert!(prod_sha.filepath.is_some());
     } else {
-        assert_eq!("", "Failed to dispatch jar file and returned None")
+        assert_eq!("", "Failed to dispatch jar file and returned None");
     }
 
+}
 
+//it should dispatch correctly *.tar.gz files on pypi
+#[test]
+fn digest_file_pypi_tar_test(){
+    let tar_file_path = Path::new("tests/fixtures/files/pypi.tar.gz");
+    let correct_md5 = "fe7daf822f1d36d1bd37ac41cf5817e7".to_string();
+
+    if let Some(prod_sha) = checker::digest_file(&tar_file_path) {
+        assert_eq!("pypi".to_string(), prod_sha.packaging);
+        assert_eq!("md5".to_string(), prod_sha.method);
+        assert_eq!(correct_md5, prod_sha.value);
+        assert!(prod_sha.filepath.is_some());
+    } else {
+        assert_eq!("", "It failed to return digest for PYPI tar file");
+    }
+}
+
+// it should correctly dispatch PYPI wheel files
+#[test]
+fn digest_file_pypi_whl_test(){
+    let whl_file_path = Path::new("tests/fixtures/files/pypi.whl");
+    let correct_md5 = "ffa1ee60be515c04b4c13fd13feea27a".to_string();
+
+    if let Some(prod_sha) = checker::digest_file(&whl_file_path) {
+        assert_eq!("pypi".to_string(), prod_sha.packaging);
+        assert_eq!("md5".to_string(), prod_sha.method);
+        assert_eq!(correct_md5, prod_sha.value);
+        assert!(prod_sha.filepath.is_some());
+    } else {
+        assert_eq!("", "It failed to return digest for PYPI wheel file");
+    }
 }
