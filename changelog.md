@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - add release scripts for Linux
 - add release scripts for OSx
 - make output CSV configurable,  #11
+- add support for Python PYPI files, #6
 
 ### Fixed
 

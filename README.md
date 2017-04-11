@@ -3,7 +3,7 @@
 
 [![Join the chat at Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/veye_checker/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
 
-It's a command-line util that scans packaged binaries (`*.nupkg, *.Jar`) and resolves their SHA digest values into the package information.
+It's a command-line util that scans packaged binaries (`*.nupkg, *.Jar, PYPI[*.tar.gz, *.whl]`) and resolves their SHA digest values into the package information.
 
 One can use this utility to lookup package version details, license, vulnerability details or automate due diligence process without installing any runtime or additional dependencies.
  
