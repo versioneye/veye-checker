@@ -19,7 +19,7 @@ FILE_SHA="5675fd96b29656504b86029551973d60fb41339b"
 echo "#-- Going to execute acceptance tests"
 echo "#-- shas command"
 assert "exec ${VERSIONEYE_BIN_PATH} shas ${FIXTURES_PATH}" \
-    "filepath;packaging;sha_method;sha_value\n../fixtures/files/test.jar;jar;sha1;5675fd96b29656504b86029551973d60fb41339b\n../fixtures/files/test.nupkg;nupkg;sha512;U82mHQSKaIk+lpSVCbWYKNavmNH1i5xrExDEquU1i6I5pV6UMOqRnJRSlKO3cMPfcpp0RgDY+8jUXHdQ4IfXvw==\nDone!"
+    "filepath;packaging;sha_method;sha_value\n../fixtures/files/pypi.tar.gz;pypi;md5;fe7daf822f1d36d1bd37ac41cf5817e7\n../fixtures/files/pypi.whl;pypi;md5;ffa1ee60be515c04b4c13fd13feea27a\n../fixtures/files/test.jar;jar;sha1;5675fd96b29656504b86029551973d60fb41339b\n../fixtures/files/test.nupkg;nupkg;sha512;U82mHQSKaIk+lpSVCbWYKNavmNH1i5xrExDEquU1i6I5pV6UMOqRnJRSlKO3cMPfcpp0RgDY+8jUXHdQ4IfXvw==\nDone!"
 
 echo "#-- lookup command"
 assert "exec ${VERSIONEYE_BIN_PATH} lookup ${FILE_SHA}" \
@@ -27,6 +27,6 @@ assert "exec ${VERSIONEYE_BIN_PATH} lookup ${FILE_SHA}" \
 
 echo "#-- resolve command"
 assert "exec ${VERSIONEYE_BIN_PATH} resolve ${FIXTURES_PATH}" \
-   "filepath;packaging;sha_method;sha_value;language;prod_key;version;n_vulns;product_url;license;error\n../fixtures/files/test.jar;jar;sha1;5675fd96b29656504b86029551973d60fb41339b;java;commons-beanutils/commons-beanutils;1.7.0;1;https://www.versioneye.com/Java/commons-beanutils:commons-beanutils/1.7.0;unknown;\n../fixtures/files/test.nupkg;nupkg;sha512;U82mHQSKaIk+lpSVCbWYKNavmNH1i5xrExDEquU1i6I5pV6UMOqRnJRSlKO3cMPfcpp0RgDY+8jUXHdQ4IfXvw==;csharp;Newtonsoft.Json;9.0.1;0;https://www.versioneye.com/CSharp/Newtonsoft~Json/9.0.1;MIT;\nDone!"
+    "filepath;packaging;sha_method;sha_value;language;prod_key;version;n_vulns;product_url;license;error\n../fixtures/files/pypi.tar.gz;pypi;md5;fe7daf822f1d36d1bd37ac41cf5817e7;python;restea;0.3.4;0;https://www.versioneye.com/Python/restea/0.3.4;MIT;\n../fixtures/files/pypi.whl;pypi;md5;ffa1ee60be515c04b4c13fd13feea27a;python;wheel;0.30.0a0;0;https://www.versioneye.com/Python/wheel/0.30.0a0;MIT;\n../fixtures/files/test.jar;jar;sha1;5675fd96b29656504b86029551973d60fb41339b;java;commons-beanutils/commons-beanutils;1.7.0;1;https://www.versioneye.com/Java/commons-beanutils:commons-beanutils/1.7.0;unknown;\n../fixtures/files/test.nupkg;nupkg;sha512;U82mHQSKaIk+lpSVCbWYKNavmNH1i5xrExDEquU1i6I5pV6UMOqRnJRSlKO3cMPfcpp0RgDY+8jUXHdQ4IfXvw==;csharp;Newtonsoft.Json;9.0.1;0;https://www.versioneye.com/CSharp/Newtonsoft~Json/9.0.1;MIT;\nDone!"
 
 assert_end
