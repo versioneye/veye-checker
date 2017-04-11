@@ -3,17 +3,25 @@
 
 [![Join the chat at Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/veye_checker/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
 
-It's a command-line util that scans packaged binaries (`*.nupkg, *.Jar, PYPI[*.tar.gz, *.whl]`) and resolves their SHA digest values into the package information.
+It's a command-line util that scans packaged binaries  and resolves their SHA digest values into the package information.
+The whole idea behind this utility is described in the Versioneye's blogpost ["Identifying components by SHA values"](https://blog.versioneye.com/2017/02/08/identifying-components-by-sha-values).
 
 One can use this utility to lookup package version details, license, vulnerability details or automate due diligence process without installing any runtime or additional dependencies.
- 
+
+Supported packages:
+
+* Nuget - *\*.nupkg*
+* Maven - *\*.jar*
+* PYPI - *\*.tar.gz, \*.whl*
+* NPM  - *\*.tgz*
 
 ## Usage
 
 Download binaries from the [releases](https://github.com/versioneye/veye-checker/releases) and save it into your binaries folder
 
 ```
-curl -s -L -o "${HOME}/bin/veye_checker"  https://github.com/versioneye/veye-checker/releases/download/v0.1.0-RC1/veye_checker_osx
+#NB! change version and op-sys
+curl -s -L -o "${HOME}/bin/veye_checker"  https://github.com/versioneye/veye-checker/releases/download/v0.1.0-RC2/veye_checker_osx
 
 chmod a+x ~/bin/veye_checker
 ```
@@ -38,6 +46,7 @@ VERSIONEYE_CSV_SEPARATOR="," veye_checker shas temp/bins/
 
 ```bash
 veye_checker lookup <SHA_STRING> -a <YOUR_API_KEY>
+
 VERSIONEYE_API_KEY="apikey" veye_checker lookup <SHA_STRING>
 ```
 
