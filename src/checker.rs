@@ -59,6 +59,23 @@ pub fn digest_pypi(filepath: &Path) -> ProductSHA {
     }
 }
 
+pub fn digest_npm(filepath: &Path) -> ProductSHA {
+    let mut f = File::open(filepath).ok().expect("Failed to open NPM package for digest");
+    let mut buffer = Vec::new();
+    let mut hasher = Sha1::new();
+
+    f.read_to_end(&mut buffer).expect("Failed to read NPM package into buffer");
+    hasher.update(&buffer);
+    let sha_val = hasher.digest().to_string();
+
+    ProductSHA {
+        packaging: "npm".to_string(),
+        method: "sha1".to_string(),
+        value: sha_val,
+        filepath: Some(filepath.to_str().unwrap_or("").to_string())
+    }
+}
+
 // founds the right encoder based on the filepath
 // returns None when filetype is unsupported
 pub fn digest_file(filepath: &Path) -> Option<ProductSHA> {
@@ -74,6 +91,7 @@ pub fn digest_file(filepath: &Path) -> Option<ProductSHA> {
         "jar"       => Some(digest_jar(filepath)),
         "gz"        => Some(digest_pypi(filepath)),
         "whl"       => Some(digest_pypi(filepath)),
+        "tgz"       => Some(digest_npm(filepath)),
         _           => None
     }
 }

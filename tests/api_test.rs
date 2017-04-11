@@ -13,6 +13,13 @@ fn test_api_encoding_product_key(){
 }
 
 #[test]
+fn test_api_encoding_language(){
+    assert_eq!("csharp".to_string(), api::encode_language("CSharp"));
+    assert_eq!("nodejs".to_string(), api::encode_language("Node.JS"));
+    assert_eq!("java".to_string(), api::encode_language("java"));
+}
+
+#[test]
 #[cfg(feature="api")]
 fn test_api_call_fetch_product_by_sha(){
 
@@ -165,6 +172,46 @@ fn test_api_process_sha_response_with_null_fields(){
         assert_eq!("".to_string(), prod.name);
     }
 
+}
+
+#[test]
+fn test_api_process_sha_response_for_npm(){
+    let file_sha = "6f631aef336d6c46362b51764044ce216be3c051";
+    let res_body = r#"
+    [{
+        "language":"Node.JS",
+        "prod_key":"etag",
+        "version":"1.8.0",
+        "group_id":null,
+        "artifact_id":null,
+        "classifier":null,
+        "packaging":null,
+        "prod_type":"npm",
+        "sha_value":"6f631aef336d6c46362b51764044ce216be3c051",
+        "sha_method":"sha1"
+     }]
+    "#;
+
+    let res = api::process_sha_response(Some(res_body.to_string()));
+    assert!(res.is_ok());
+
+    if let Some(prod_match) = res.ok() {
+        assert!(prod_match.sha.is_some());
+        let sha = prod_match.sha.unwrap();
+        assert_eq!("unknown".to_string(), sha.packaging);
+        assert_eq!("sha1".to_string(), sha.method);
+        assert_eq!(file_sha.to_string(), sha.value);
+        assert_eq!(None, sha.filepath);
+
+        assert!(prod_match.product.is_some());
+        let prod = prod_match.product.unwrap();
+        assert_eq!("Node.JS".to_string(), prod.language);
+        assert_eq!("npm".to_string(), prod.prod_type.unwrap());
+        assert_eq!("etag".to_string(), prod.prod_key);
+        assert_eq!("1.8.0".to_string(), prod.version);
+        assert_eq!("".to_string(), prod.name);
+
+    }
 }
 
 #[test]

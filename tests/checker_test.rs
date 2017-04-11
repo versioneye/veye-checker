@@ -54,6 +54,18 @@ fn digest_pypi_whl_test(){
     assert!(prod_sha.filepath.is_some());
 }
 
+#[test]
+fn digest_npm_test(){
+    let file_path = Path::new("tests/fixtures/files/npm.tgz");
+    let correct_sha = "6f631aef336d6c46362b51764044ce216be3c051".to_string();
+    let prod_sha = checker::digest_npm(&file_path);
+
+    assert_eq!("npm".to_string(), prod_sha.packaging);
+    assert_eq!("sha1".to_string(), prod_sha.method);
+    assert_eq!(correct_sha, prod_sha.value);
+    assert!(prod_sha.filepath.is_some());
+}
+
 //it should correctly dispatch the nupkg-digestor
 #[test]
 fn digest_file_nupkg_test(){
@@ -116,5 +128,20 @@ fn digest_file_pypi_whl_test(){
         assert!(prod_sha.filepath.is_some());
     } else {
         assert_eq!("", "It failed to return digest for PYPI wheel file");
+    }
+}
+
+#[test]
+fn digest_file_npm_test(){
+    let file_path = Path::new("tests/fixtures/files/npm.tgz");
+    let correct_sha = "6f631aef336d6c46362b51764044ce216be3c051".to_string();
+
+    if let Some(prod_sha) = checker::digest_file(&file_path) {
+        assert_eq!("npm".to_string(), prod_sha.packaging);
+        assert_eq!("sha1".to_string(), prod_sha.method);
+        assert_eq!(correct_sha, prod_sha.value);
+        assert!(prod_sha.filepath.is_some());
+    } else {
+        assert_eq!("", "It failed to return digest for NPM tgz file");
     }
 }

@@ -94,11 +94,12 @@ pub fn fetch_product_by_sha(api_confs: &ApiConfigs, sha: &str)
         .clear()
         .append_pair("api_key", api_confs.key.clone().unwrap().as_str());
 
+
     let json_txt = request_json( &resource_url );
     process_sha_response(json_txt)
 }
 
-pub fn encode_prod_key<'b>( prod_key: &'b str) -> String {
+pub fn encode_prod_key<'b>(prod_key: &'b str) -> String {
     let encoded_prod_key = prod_key.to_string();
     encoded_prod_key
         .replace(".", "~")
@@ -107,13 +108,19 @@ pub fn encode_prod_key<'b>( prod_key: &'b str) -> String {
 
 }
 
+pub fn encode_language<'b>(lang: &'b str) -> String {
+    let encoded_lang = lang.to_string();
+    encoded_lang.replace(".", "").trim().to_lowercase().to_string()
+}
+
 pub fn fetch_product<'a>(
     api_confs: &ApiConfigs, lang: &str, prod_key: &str, version: &str
 ) -> Result<product::ProductMatch, io::Error> {
 
     let encoded_prod_key = encode_prod_key(&prod_key);
-    let resource_path = format!("products/{}/{}", lang, encoded_prod_key.clone());
-    let prod_url = to_product_url(lang, encoded_prod_key.clone().as_str(), version);
+    let encoded_lang = encode_language(lang);
+    let resource_path = format!("products/{}/{}", encoded_lang.clone(), encoded_prod_key.clone());
+    let prod_url = to_product_url(encoded_lang.clone().as_str(), encoded_prod_key.clone().as_str(), version);
 
     let mut resource_url = match configs_to_url(api_confs, resource_path.as_str()) {
         Ok(the_url) => the_url,
