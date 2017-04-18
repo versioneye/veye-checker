@@ -11,7 +11,7 @@ md5             = "^0.3"
 getopts         = "^0.2"
 hyper           = "^0.10"
 rustc-serialize = "^0.3"
-hyper-rustls    = "^0.3"
+hyper-native-tls = "0.2.2"
 csv             = "^0.15"
 regex           = "^0.2.1"
 serde           = "^0.9.1"
@@ -24,4 +24,5 @@ log = "*"
 
 [features]
 api = []
+proxy = []
 

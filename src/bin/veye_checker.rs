@@ -82,7 +82,7 @@ fn do_resolve_task(matches: &getopts::Matches) -> Result<bool, String> {
     // execute command pipeline
     let dir = PathBuf::from(&dir_txt);
     let (sha_ch, h1) = tasks::start_path_scanner(dir);
-    let (product_ch, h2) = tasks::start_sha_fetcher(global_configs.api.clone(), sha_ch);
+    let (product_ch, h2) = tasks::start_sha_fetcher(global_configs.clone(), sha_ch);
     let h3 = match matches.opt_str("o") {
         Some(out_path) => {
             let out_path = PathBuf::from(out_path);
@@ -151,7 +151,7 @@ fn do_lookup_task(matches: &getopts::Matches) -> Result<bool, String> {
         product::ProductSHA::from_sha(file_sha.clone().to_string())
     ];
     let (sha_ch, h1) = tasks::start_sha_publisher(shas);
-    let (prod_ch, h2) = tasks::start_sha_fetcher(global_configs.api.clone(), sha_ch);
+    let (prod_ch, h2) = tasks::start_sha_fetcher(global_configs.clone(), sha_ch);
     let h3 = match matches.opt_str("o") {
         Some(outfile_path) => {
             let outpath = PathBuf::from(&outfile_path);

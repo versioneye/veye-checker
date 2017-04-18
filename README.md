@@ -91,6 +91,9 @@ It's possible to tweak a setting of the command-line tool with environmental var
 | VERSIONEYE\_CSV\_SEPARATOR| ;         | overrides separator in output row, can be only single character|
 | VERSIONEYE\_CSV\_QUOTE | \"           | what character to use for quoting, can be only single character |
 | VERSIONEYE\_CSV\_FLEXIBLE| false      | should it skip empty fields at the end, accepted values 1, T, TRUE to activate; all other values equal to FALSE |
+| VERSIONEYE\_PROXY\_HOST| None         | specifies proxy host |
+| VERSIONEYE\_PROXY\_PORT| None         | specifies proxy port |
+| VERSIONEYE\_PROXY\_SCHEME| http       | specifies proxy scheme |
 
 ## Configuration via config file
 
@@ -114,7 +117,14 @@ separator = ","
 quote     = "'"
 flexible  = 0
 
+[proxy]
+host = "127.0.0.1"
+port = 3128
+scheme = "http"
+
 ```
+
+ps: if you have problem using the configuration file, then make sure that the file includes rows `[api], [csv], [proxy]`
 
 ## Build
 
@@ -140,8 +150,9 @@ or optimized production release
 ### TESTING
 
 * to run all the unit tests
+
 ```bash
-cargo test
+cargo test -- --test-threads=1
 ```
 
 * to run integration test against API configs
@@ -150,6 +161,26 @@ cargo test
 VERSIONEYE_API_KEY="your_api_key" cargo test --features="api"
 ```
 
+* running integration tests against proxy
+
+ 1. start squid proxy
+ 
+    ```bash
+    docker pull sameersbn/squid:latest
+    
+    docker run --name squid -d --restart=always \
+      --publish 3128:3128 \
+      --volume /veye-checker/temp/cache:/var/spool/squid3 \
+      sameersbn/squid:latest
+      
+    docker stop|run squid
+    ```
+
+ 2. run tests
+ 
+    ```bash
+        cargo test test_proxy --features=proxy
+    ```
 * to run acceptance tests
 
 ```bash
@@ -161,3 +192,5 @@ VERSIONEYE_API_KEY="your_api_key" ./run.sh
 ## Contributing
 
 It's opensource project and any kind of contribution is more than welcome. 
+
+

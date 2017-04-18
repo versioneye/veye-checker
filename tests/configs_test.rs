@@ -54,14 +54,30 @@ fn read_csv_configs_from_env_test(){
     assert!(env::var("VERSIONEYE_CSV_SEPARATOR").is_err());
 }
 
+#[test]
+fn read_proxy_configs_from_env_test(){
+    //set up env variables
+    env::set_var("VERSIONEYE_PROXY_HOST", "127.0.0.1");
+    env::set_var("VERSIONEYE_PROXY_PORT", "3128");
+    env::set_var("VERSIONEYE_PROXY_SCHEME", "socks");
+
+    //test correctness
+    let confs = configs::read_configs_from_env().expect("Failed to read configs from ENV");
+    assert_eq!(Some("127.0.0.1".to_string()), confs.proxy.host);
+    assert_eq!(Some(3128), confs.proxy.port);
+    assert_eq!(Some("socks".to_string()), confs.proxy.scheme);
+
+    //cleanup env
+    env::remove_var("VERSIONEYE_PROXY_HOST");
+    env::remove_var("VERSIONEYE_PROXY_PORT");
+    env::remove_var("VERSIONEYE_PROXY_SCHEME");
+}
 
 #[test]
 fn read_configs_from_toml_test(){
 
     let toml_path = PathBuf::from("./tests/fixtures/veye_checker.toml");
     let confs = configs::read_configs_from_toml(&toml_path).expect("Failed to parse test TOML");
-
-    println!("Configs from toml...{:?}", confs );
 
     assert_eq!(confs.api.key, Some("def-234".to_string()));
     assert_eq!(confs.api.port, Some(8090));
@@ -70,6 +86,11 @@ fn read_configs_from_toml_test(){
     assert_eq!(Some(",".to_string()), confs.csv.separator);
     assert_eq!(Some("'".to_string()), confs.csv.quote);
     assert_eq!(Some(false), confs.csv.flexible);
+
+    //check correctness of proxy settings
+    assert_eq!(Some("192.168.0.1".to_string()), confs.proxy.host);
+    assert_eq!(Some(9200), confs.proxy.port);
+    assert_eq!(None, confs.proxy.scheme);
 
     //cleanup some ENV vars to get values from config file
     env::remove_var("VERSIONEYE_CSV_SEPARATOR");
@@ -114,5 +135,8 @@ fn read_configs_test(){
     env::remove_var("VERSIONEYE_API_KEY");
     env::remove_var("VERSIONEYE_API_HOST");
     env::remove_var("VERSIONEYE_API_PORT");
+    env::remove_var("VERSIONEYE_CSV_QUOTE");
+    env::remove_var("VERSIONEYE_CSV_SEPARATOR");
+    env::remove_var("VERSIONEYE_CSV_FLEXIBLE");
 }
 

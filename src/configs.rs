@@ -65,18 +65,53 @@ impl Default for CSVConfigs {
     }
 }
 
+
+//-- ProxyConfigs
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ProxyConfigs {
+    pub host: Option<String>,
+    pub port: Option<u16>,
+    pub scheme: Option<String>
+}
+
+impl ProxyConfigs {
+    //copies fields values into target struct only if has Some value
+    fn merge_to(&self, target: &mut ProxyConfigs){
+        if self.host.is_some() { target.host = self.host.clone(); }
+        if self.port.is_some() { target.port = self.port.clone(); }
+        if self.scheme.is_some() { target.scheme = self.scheme.clone(); }
+    }
+
+    //checks does it have all the required fields to use it
+    pub fn is_complete(&self) -> bool {
+        self.host.is_some() && self.port.is_some()
+    }
+}
+
+impl Default for ProxyConfigs {
+    fn default() -> ProxyConfigs {
+        ProxyConfigs {
+            host: None,
+            port: None,
+            scheme: None
+        }
+    }
+}
+
 //-- Configs ------------------------------------------------------------------
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Configs {
     pub api: ApiConfigs,
-    pub csv: CSVConfigs
+    pub csv: CSVConfigs,
+    pub proxy: ProxyConfigs
 }
 
 impl Configs {
     fn merge_to(&self, target: &mut Configs) {
         self.api.merge_to(&mut target.api);
         self.csv.merge_to(&mut target.csv);
+        self.proxy.merge_to(&mut target.proxy);
     }
 }
 
@@ -84,7 +119,8 @@ impl Default for Configs {
     fn default() -> Configs {
         Configs {
             api: ApiConfigs::default(),
-            csv: CSVConfigs::default()
+            csv: CSVConfigs::default(),
+            proxy: ProxyConfigs::default()
         }
     }
 }
@@ -112,6 +148,7 @@ pub fn read_configs(filepath: Option<String>) -> Configs {
 pub fn read_configs_from_env() -> Result<Configs, Error> {
     let re_api_key = Regex::new(r"\AVERSIONEYE_API_(\w+)\z").unwrap();
     let re_csv_key = Regex::new(r"\AVERSIONEYE_CSV_(\w+)\z").unwrap();
+    let re_proxy_key = Regex::new(r"\AVERSIONEYE_PROXY_(\w+)\z").unwrap();
 
     let mut configs = Configs::default();
 
@@ -150,6 +187,19 @@ pub fn read_configs_from_env() -> Result<Configs, Error> {
                 _ => () //ignore unsupported csv keys
             }
         };
+
+        //read proxy configs
+        if let Some(m) = re_proxy_key.captures(&key) {
+            let proxy_val = val.clone();
+
+            match m.get(1).unwrap().as_str() {
+                "HOST"      => configs.proxy.host = Some(proxy_val),
+                "PORT"      => configs.proxy.port = proxy_val.parse::<u16>().ok(),
+                "SCHEME"    => configs.proxy.scheme = Some(proxy_val),
+                _           => ()
+            }
+        }
+
     }
 
     Ok(configs)

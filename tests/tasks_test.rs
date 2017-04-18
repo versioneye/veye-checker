@@ -64,7 +64,7 @@ fn test_api_task_start_sha_fetcher(){
     ];
 
     let (sha_ch, h1) = tasks::start_sha_publisher(test_shas);
-    let (prod_ch, h2) = tasks::start_sha_fetcher(confs.api, sha_ch);
+    let (prod_ch, h2) = tasks::start_sha_fetcher(confs, sha_ch);
 
     for res in prod_ch.into_iter() {
         assert_eq!(true, res.sha.is_some());
@@ -101,7 +101,7 @@ fn test_api_task_start_sha_fetcher_sha_dont_exists(){
     ];
 
     let (sha_ch, h1) = tasks::start_sha_publisher(test_shas);
-    let (prod_ch, h2) = tasks::start_sha_fetcher(confs.api, sha_ch);
+    let (prod_ch, h2) = tasks::start_sha_fetcher(confs, sha_ch);
 
     //it should return ProductMatch with original sha and empty prod info
     for res in prod_ch.into_iter() {

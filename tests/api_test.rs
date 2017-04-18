@@ -1,13 +1,14 @@
 extern crate hyper;
 extern crate veye_checker;
 
+use std::env;
 use std::error::Error;
 use veye_checker::{api, configs};
 
 
 #[test]
 fn test_api_encoding_product_key(){
-    assert_eq!(api::encode_prod_key("dot.net"), "dot~net");
+    assert_eq!(api::encode_prod_key ("dot.net"), "dot~net");
     assert_eq!(api::encode_prod_key("slash/net"), "slash:net");
     assert_eq!(api::encode_prod_key("dot.net/slash"), "dot~net:slash");
 }
@@ -26,7 +27,7 @@ fn test_api_call_fetch_product_by_sha(){
     let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
     let confs = configs::read_configs(None);
 
-    let res = api::fetch_product_by_sha(&confs.api, file_sha).expect("Failed fetch SHA");
+    let res = api::fetch_product_by_sha(&confs, file_sha).expect("Failed fetch SHA");
 
     let prod_url = "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
     assert_eq!(Some(prod_url), res.url);
@@ -47,13 +48,49 @@ fn test_api_call_fetch_product_by_sha(){
     assert_eq!("".to_string(), prod.name);
 }
 
+//1.st run Squid container, 2. cargo test test_proxy --features=proxy
+#[test]
+#[cfg(feature="proxy")]
+fn test_proxy_call_fetch_product_by_sha(){
+    env::set_var("VERSIONEYE_PROXY_HOST", "127.0.0.1");
+    env::set_var("VERSIONEYE_PROXY_PORT", "3128");
+    env::set_var("VERSIONEYE_PROXY_SCHEME", "http");
+
+    let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
+    let confs = configs::read_configs(None);
+
+    let res = api::fetch_product_by_sha(&confs, file_sha).expect("Failed fetch SHA");
+
+    let prod_url = "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
+    assert_eq!(Some(prod_url), res.url);
+    assert_eq!(true, res.sha.is_some());
+
+    let sha = res.sha.unwrap();
+    assert_eq!("jar".to_string(), sha.packaging);
+    assert_eq!("sha1".to_string(), sha.method);
+    assert_eq!(file_sha.to_string(), sha.value);
+    assert_eq!(None, sha.filepath);
+
+    assert_eq!(true, res.product.is_some());
+    let prod = res.product.unwrap();
+    assert_eq!("Java".to_string(), prod.language);
+    assert_eq!("Maven2".to_string(), prod.prod_type.unwrap());
+    assert_eq!("commons-beanutils/commons-beanutils".to_string(), prod.prod_key);
+    assert_eq!("1.7.0".to_string(), prod.version);
+    assert_eq!("".to_string(), prod.name);
+
+    //clean up env
+    env::remove_var("VERSIONEYE_PROXY_HOST");
+    env::remove_var("VERSIONEYE_PROXY_PORT");
+    env::remove_var("VERSIONEYE_PROXY_SCHEME");
+}
 
 #[test]
 #[cfg(feature="api")]
 fn test_api_call_fetch_product(){
     let confs = configs::read_configs(None);
     let res = api::fetch_product(
-        &confs.api, "Java", "commons-beanutils/commons-beanutils", "1.7.0"
+        &confs, "Java", "commons-beanutils/commons-beanutils", "1.7.0"
     ).expect("Failed to fetch product details");
 
     assert_eq!(false, res.sha.is_some());
@@ -68,12 +105,41 @@ fn test_api_call_fetch_product(){
 }
 
 #[test]
+#[cfg(feature="proxy")]
+fn test_proxy_call_fetch_product(){
+    env::set_var("VERSIONEYE_PROXY_HOST", "127.0.0.1");
+    env::set_var("VERSIONEYE_PROXY_PORT", "3128");
+    env::set_var("VERSIONEYE_PROXY_SCHEME", "http");
+
+    let confs = configs::read_configs(None);
+    let res = api::fetch_product(
+        &confs, "Java", "commons-beanutils/commons-beanutils", "1.7.0"
+    ).expect("Failed to fetch product details");
+
+    assert_eq!(false, res.sha.is_some());
+    assert_eq!(true, res.product.is_some());
+
+    let prod = res.product.unwrap();
+    assert_eq!("java".to_string(), prod.language);
+    assert_eq!("Maven2".to_string(), prod.prod_type.unwrap());
+    assert_eq!("commons-beanutils/commons-beanutils".to_string(), prod.prod_key);
+    assert_eq!("1.7.0".to_string(), prod.version);
+    assert_eq!("commons-beanutils".to_string(), prod.name);
+
+    //clean up env
+    env::remove_var("VERSIONEYE_PROXY_HOST");
+    env::remove_var("VERSIONEYE_PROXY_PORT");
+    env::remove_var("VERSIONEYE_PROXY_SCHEME");
+}
+
+
+#[test]
 #[cfg(feature="api")]
 fn test_api_call_fetch_product_details_by_sha(){
     let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
     let confs = configs::read_configs(None);
 
-    let res = api::fetch_product_by_sha(&confs.api, file_sha).expect("Failed fetch SHA");
+    let res = api::fetch_product_by_sha(&confs, file_sha).expect("Failed fetch SHA");
 
     let prod_url = "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
     assert_eq!(Some(prod_url), res.url);
@@ -94,6 +160,41 @@ fn test_api_call_fetch_product_details_by_sha(){
     assert_eq!("".to_string(), prod.name);
 }
 
+#[test]
+#[cfg(feature="proxy")]
+fn test_proxy_call_fetch_product_details_by_sha(){
+    env::set_var("VERSIONEYE_PROXY_HOST", "127.0.0.1");
+    env::set_var("VERSIONEYE_PROXY_PORT", "3128");
+    env::set_var("VERSIONEYE_PROXY_SCHEME", "http");
+
+    let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
+    let confs = configs::read_configs(None);
+
+    let res = api::fetch_product_by_sha(&confs, file_sha).expect("Failed fetch SHA");
+
+    let prod_url = "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
+    assert_eq!(Some(prod_url), res.url);
+    assert_eq!(true, res.sha.is_some());
+
+    let sha = res.sha.unwrap();
+    assert_eq!("jar".to_string(), sha.packaging);
+    assert_eq!("sha1".to_string(), sha.method);
+    assert_eq!(file_sha.to_string(), sha.value);
+    assert_eq!(None, sha.filepath);
+
+    assert_eq!(true, res.product.is_some());
+    let prod = res.product.unwrap();
+    assert_eq!("Java".to_string(), prod.language);
+    assert_eq!("Maven2".to_string(), prod.prod_type.unwrap());
+    assert_eq!("commons-beanutils/commons-beanutils".to_string(), prod.prod_key);
+    assert_eq!("1.7.0".to_string(), prod.version);
+    assert_eq!("".to_string(), prod.name);
+
+    //clean up env
+    env::remove_var("VERSIONEYE_PROXY_HOST");
+    env::remove_var("VERSIONEYE_PROXY_PORT");
+    env::remove_var("VERSIONEYE_PROXY_SCHEME");
+}
 
 #[test]
 fn test_api_process_sha_response(){

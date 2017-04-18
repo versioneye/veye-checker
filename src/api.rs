@@ -1,13 +1,15 @@
 use std::io::{self, Read, Error, ErrorKind};
+use std::borrow::Cow;
 
 use hyper;
-use hyper::{ Client, Url };
+use hyper::{client, Client, Url };
 use hyper::net::HttpsConnector;
-use hyper_rustls;
+use hyper_native_tls::NativeTlsClient;
+
 use std::time::Duration;
 use rustc_serialize::json::Json;
 use product;
-use configs::ApiConfigs;
+use configs::{Configs, ApiConfigs, ProxyConfigs};
 
 const HOST_URL: &'static str = "https://www.versioneye.com";
 
@@ -36,10 +38,26 @@ fn configs_to_url(api_confs: &ApiConfigs, resource_path: &str)
     Url::parse(url_str.as_str())
 }
 
-fn request_json(uri: &Url) -> Option<String> {
-    let ssl = hyper_rustls::TlsClient::new();
+fn request_json<'a>(uri: &Url, proxy_confs: &'a ProxyConfigs) -> Option<String> {
+    let ssl = NativeTlsClient::new().unwrap();
     let connector = HttpsConnector::new(ssl);
-    let mut client = Client::with_connector(connector);
+
+    //use proxy only iff user has defined proxy host and port
+    let mut client = if proxy_confs.is_complete() {
+        let host = Cow::from(proxy_confs.host.clone().unwrap());
+        let port = proxy_confs.port.clone().unwrap();
+        let scheme = proxy_confs.scheme.clone().unwrap_or("http".to_string());
+
+        let ssl_proxy = NativeTlsClient::new().unwrap();
+        let proxy = client::ProxyConfig::new (
+            scheme.as_str(), host, port, connector, ssl_proxy
+        );
+
+        Client::with_proxy_config(proxy)
+    } else {
+        Client::with_connector(connector)
+    };
+
     client.set_read_timeout(Some(Duration::new(5,0)));
 
     let mut res = client.get(uri.as_str()).send().expect("Failed to fetch results from the url");
@@ -49,15 +67,15 @@ fn request_json(uri: &Url) -> Option<String> {
     Some(body)
 }
 
-pub fn fetch_product_details_by_sha(api_confs: &ApiConfigs, file_sha: &str)
+pub fn fetch_product_details_by_sha(confs: &Configs, file_sha: &str)
     -> Result<product::ProductMatch, Error> {
 
-    let sha_res = fetch_product_by_sha(&api_confs, &file_sha);
+    let sha_res = fetch_product_by_sha(&confs, &file_sha);
     match sha_res {
         Ok(m) => {
             let sha = m.sha.expect("No product sha from SHA result");
             let product = m.product.expect("No product info from SHA result");
-            match fetch_product( &api_confs, &product.language, &product.prod_key, &product.version ) {
+            match fetch_product( &confs, &product.language, &product.prod_key, &product.version ) {
                 Ok(mut m) => {
                     m.sha = Some(sha);
                     Ok(m)
@@ -73,10 +91,11 @@ pub fn fetch_product_details_by_sha(api_confs: &ApiConfigs, file_sha: &str)
     }
 }
 
-pub fn fetch_product_by_sha(api_confs: &ApiConfigs, sha: &str)
+pub fn fetch_product_by_sha(confs: &Configs, sha: &str)
     -> Result<product::ProductMatch, io::Error> {
+    let api_confs = confs.api.clone();
     let resource_path = format!("products/sha/{}", sha.clone() );
-    let mut resource_url = match configs_to_url(api_confs, resource_path.as_str()) {
+    let mut resource_url = match configs_to_url(&api_confs, resource_path.as_str()) {
         Ok(the_url) => the_url,
         Err(_)      => {
             return Err(
@@ -95,7 +114,7 @@ pub fn fetch_product_by_sha(api_confs: &ApiConfigs, sha: &str)
         .append_pair("api_key", api_confs.key.clone().unwrap().as_str());
 
 
-    let json_txt = request_json( &resource_url );
+    let json_txt = request_json( &resource_url, &confs.proxy );
     process_sha_response(json_txt)
 }
 
@@ -114,15 +133,16 @@ pub fn encode_language<'b>(lang: &'b str) -> String {
 }
 
 pub fn fetch_product<'a>(
-    api_confs: &ApiConfigs, lang: &str, prod_key: &str, version: &str
+    confs: &Configs, lang: &str, prod_key: &str, version: &str
 ) -> Result<product::ProductMatch, io::Error> {
 
+    let api_confs = confs.api.clone();
     let encoded_prod_key = encode_prod_key(&prod_key);
     let encoded_lang = encode_language(lang);
     let resource_path = format!("products/{}/{}", encoded_lang.clone(), encoded_prod_key.clone());
     let prod_url = to_product_url(encoded_lang.clone().as_str(), encoded_prod_key.clone().as_str(), version);
 
-    let mut resource_url = match configs_to_url(api_confs, resource_path.as_str()) {
+    let mut resource_url = match configs_to_url(&api_confs, resource_path.as_str()) {
         Ok(the_url) => the_url,
         Err(_)      => {
             return Err(
@@ -141,7 +161,7 @@ pub fn fetch_product<'a>(
         .append_pair("prod_version", version)
         .append_pair("api_key", api_confs.key.clone().unwrap().as_str());
 
-    let json_txt = request_json( &resource_url );
+    let json_txt = request_json( &resource_url, &confs.proxy );
     process_product_response(json_txt, Some(prod_url))
 }
 

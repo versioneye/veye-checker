@@ -8,3 +8,7 @@ port = 8090
 separator   = ","
 quote       = "'"
 flexible    = false
+
+[proxy]
+host = "192.168.0.1"
+port = 9200
