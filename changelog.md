@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - make output CSV configurable,  #11
 - add support for Python PYPI files, #6
 - add support for NPM files, #5
+- add support for proxy, #14
 
 ### Fixed
 
