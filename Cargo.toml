@@ -1,6 +1,6 @@
 [package]
 name = "veye_checker"
-version = "0.1.0git"
+version = "0.1.0"
 authors = ["timgluz <sulg@versioneye.com>", "reiz@versioneye.com"]
 
 [dependencies]
