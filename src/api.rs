@@ -201,7 +201,7 @@ pub fn process_sha_response(json_text: Option<String> ) -> Result<product::Produ
 
     let product_doc = match json_obj.as_array() {
         Some(products) if products.len() > 0 => products[0].clone(),
-        _ => return Err(Error::new(ErrorKind::Other, "Empty response - API may be not responding"))
+        _ => return Err(Error::new(ErrorKind::Other, "Empty response"))
     };
 
     let the_prod = product::Product {
