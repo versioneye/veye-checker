@@ -257,7 +257,7 @@ pub fn process_product_response(
         return Err(
             Error::new(
                 ErrorKind::Other,
-                "Hit API request limit - upgrade your subscription"
+                "API rate limit reached. Go to https://www.versioneye.com and upgrade your subscription to a higher plan."
             )
         )
     }
