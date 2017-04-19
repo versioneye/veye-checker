@@ -165,12 +165,12 @@ pub fn fetch_product<'a>(
     process_product_response(json_txt, Some(prod_url))
 }
 
-
+//TODO: log all error details
 //-- helper functions
 pub fn process_sha_response(json_text: Option<String> ) -> Result<product::ProductMatch, io::Error> {
     if json_text.is_none() {
         return Err(
-            Error::new(ErrorKind::Other, "API returned empty response string")
+            Error::new(ErrorKind::Other, "No response from API")
         )
     }
 
@@ -179,29 +179,29 @@ pub fn process_sha_response(json_text: Option<String> ) -> Result<product::Produ
         return Err(
             Error::new(
                 ErrorKind::Other,
-                format!("Failed to parse JSON response from SHA api: {:?}", json_text).as_str()
+                "Failed to parse response from SHA endpoint - server failed to process request"
             )
         )
     }
 
     let json_obj = json_res.unwrap();
     //if response includes error field in HTTP200 response
-    if let Some(error_val) = json_obj.find("error") {
+    if let Some(_) = json_obj.find("error") {
         return Err(
             Error::new(
                 ErrorKind::Other,
-                format!("Failed to process sha response: {}", error_val.as_string().unwrap())
+                "Hit API request limit - upgrade your subscription"
             )
         )
     }
 
     if !json_obj.is_array() {
-        return Err(Error::new( ErrorKind::Other, "Product response wasnt array"));
+        return Err(Error::new( ErrorKind::Other, "The structure of SHA response has been changed"));
     }
 
     let product_doc = match json_obj.as_array() {
         Some(products) if products.len() > 0 => products[0].clone(),
-        _ => return Err(Error::new(ErrorKind::Other, "Empty response"))
+        _ => return Err(Error::new(ErrorKind::Other, "Empty response - API may be not responding"))
     };
 
     let the_prod = product::Product {
@@ -229,7 +229,10 @@ pub fn process_product_response(
 
     if json_text.is_none() {
         return Err(
-            Error::new(ErrorKind::Other, "API returned empty response string")
+            Error::new(
+                ErrorKind::Other,
+                "API returned empty response string - server may not responding"
+            )
         )
     }
 
@@ -238,7 +241,7 @@ pub fn process_product_response(
         return Err(
             Error::new(
                 ErrorKind::Other,
-                format!("Failed to parse JSON response from SHA api: {:?}", json_text).as_str()
+                "Failed to parse response from the Product endpoint - server failed to process request"
             )
         )
     }
@@ -249,11 +252,12 @@ pub fn process_product_response(
     }
 
     //if response includes error field in HTTP200 response
-    if let Some(error_val) = json_obj.find("error") {
+    // NB! it may include other errors than limit, but @Rob asked to see custom Limit error message
+    if let Some(_) = json_obj.find("error") {
         return Err(
             Error::new(
                 ErrorKind::Other,
-                format!("Failed to process product response: {}", error_val.as_string().unwrap())
+                "Hit API request limit - upgrade your subscription"
             )
         )
     }
