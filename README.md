@@ -21,7 +21,7 @@ Download binaries from the [releases](https://github.com/versioneye/veye-checker
 
 ```
 #NB! change version and op-sys
-curl -s -L -o "${HOME}/bin/veye_checker"  https://github.com/versioneye/veye-checker/releases/download/v0.1.0-RC2/veye_checker_osx
+curl -s -L -o "${HOME}/bin/veye_checker" https://github.com/versioneye/veye-checker/releases/download/v0.1.0/veye_checker_osx
 
 chmod a+x ~/bin/veye_checker
 ```
