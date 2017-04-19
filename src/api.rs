@@ -70,7 +70,7 @@ fn request_json<'a>(uri: &Url, proxy_confs: &'a ProxyConfigs) -> Option<String> 
 pub fn fetch_product_details_by_sha(confs: &Configs, file_sha: &str)
     -> Result<product::ProductMatch, Error> {
 
-    let sha_res = fetch_product_by_sha(&confs, &file_sha);
+    let sha_res = fetch_product_by_sha(&confs, file_sha);
     match sha_res {
         Ok(m) => {
             let sha = m.sha.expect("No product sha from SHA result");
@@ -94,7 +94,7 @@ pub fn fetch_product_details_by_sha(confs: &Configs, file_sha: &str)
 pub fn fetch_product_by_sha(confs: &Configs, sha: &str)
     -> Result<product::ProductMatch, io::Error> {
     let api_confs = confs.api.clone();
-    let resource_path = format!("products/sha/{}", sha.clone() );
+    let resource_path = format!("products/sha/{}", encode_sha(sha) );
     let mut resource_url = match configs_to_url(&api_confs, resource_path.as_str()) {
         Ok(the_url) => the_url,
         Err(_)      => {
@@ -116,6 +116,17 @@ pub fn fetch_product_by_sha(confs: &Configs, sha: &str)
 
     let json_txt = request_json( &resource_url, &confs.proxy );
     process_sha_response(json_txt)
+}
+
+//replaces base64 special characters with HTML safe percentage encoding
+//source: https://en.wikipedia.org/wiki/Base64#URL_applications
+pub fn encode_sha<'a>(sha: &'a str) -> String {
+    let encoded_sha = sha.to_string();
+
+    encoded_sha.replace("+", "%2B")
+        .replace("/", "%2F")
+        .replace("=", "%3D")
+        .trim().to_string()
 }
 
 pub fn encode_prod_key<'b>(prod_key: &'b str) -> String {

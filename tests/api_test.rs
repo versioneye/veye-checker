@@ -7,17 +7,24 @@ use veye_checker::{api, configs};
 
 
 #[test]
-fn test_api_encoding_product_key(){
+fn test_api_encode_prod_key(){
     assert_eq!(api::encode_prod_key ("dot.net"), "dot~net");
     assert_eq!(api::encode_prod_key("slash/net"), "slash:net");
     assert_eq!(api::encode_prod_key("dot.net/slash"), "dot~net:slash");
 }
 
 #[test]
-fn test_api_encoding_language(){
+fn test_api_encode_language(){
     assert_eq!("csharp".to_string(), api::encode_language("CSharp"));
     assert_eq!("nodejs".to_string(), api::encode_language("Node.JS"));
     assert_eq!("java".to_string(), api::encode_language("java"));
+}
+
+#[test]
+fn test_api_encode_sha(){
+    let original_sha = "/uVunD0tcI2UQCzFp0g46+CjSF2ElQ/Bc9tWw8FS4f0iIK728XCjY8stn3+s78tiz8x2EUGwAnaOVfQJB6hI5g==";
+    let encoded_sha = "%2FuVunD0tcI2UQCzFp0g46%2BCjSF2ElQ%2FBc9tWw8FS4f0iIK728XCjY8stn3%2Bs78tiz8x2EUGwAnaOVfQJB6hI5g%3D%3D";
+    assert_eq!(encoded_sha.to_string(), api::encode_sha(original_sha));
 }
 
 #[test]
@@ -45,6 +52,34 @@ fn test_api_call_fetch_product_by_sha(){
     assert_eq!("Maven2".to_string(), prod.prod_type.unwrap());
     assert_eq!("commons-beanutils/commons-beanutils".to_string(), prod.prod_key);
     assert_eq!("1.7.0".to_string(), prod.version);
+    assert_eq!("".to_string(), prod.name);
+}
+
+#[test]
+#[cfg(feature="api")]
+fn test_api_call_fetch_product_by_sha_nuget_special_symbols(){
+
+    let file_sha = "/uVunD0tcI2UQCzFp0g46+CjSF2ElQ/Bc9tWw8FS4f0iIK728XCjY8stn3+s78tiz8x2EUGwAnaOVfQJB6hI5g==";
+    let confs = configs::read_configs(None);
+
+    let res = api::fetch_product_by_sha(&confs, file_sha).expect("Failed fetch SHA");
+
+    let prod_url = "https://www.versioneye.com/CSharp/RavenDB.Client".to_string();
+    assert_eq!(Some(prod_url), res.url);
+    assert_eq!(true, res.sha.is_some());
+
+    let sha = res.sha.unwrap();
+    assert_eq!("unknown".to_string(), sha.packaging);
+    assert_eq!("sha512".to_string(), sha.method);
+    assert_eq!(file_sha.to_string(), sha.value);
+    assert_eq!(None, sha.filepath);
+
+    assert_eq!(true, res.product.is_some());
+    let prod = res.product.unwrap();
+    assert_eq!("CSharp".to_string(), prod.language);
+    assert_eq!("Nuget".to_string(), prod.prod_type.unwrap());
+    assert_eq!("RavenDB.Client".to_string(), prod.prod_key);
+    assert_eq!("3.5.2".to_string(), prod.version);
     assert_eq!("".to_string(), prod.name);
 }
 

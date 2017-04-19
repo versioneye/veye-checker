@@ -27,5 +27,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - issue #7, execution raised panic when API response didnt match schema
 - issue #1, show API errors in final output without stopping processing
 - temporary fix for configs_test, which sometimes fail due the fact the manipulating ENV vars may have read/delete conflicts.
+- fix nuget lookup when its base64 includes `+, /, =` which are not URL safe characters;
 
 
