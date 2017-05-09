@@ -4,7 +4,9 @@ use std::default::{Default};
 use std::io::{Read, Error, ErrorKind};
 use std::path::PathBuf;
 use std::fs::File;
+
 use toml;
+use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ApiConfigs {
@@ -211,6 +213,7 @@ pub fn read_configs_from_toml(file_path: &PathBuf) -> Result<Configs, Error> {
     let mut toml_txt = String::new();
     toml_file.read_to_string(&mut toml_txt)?;
 
+    /*
     match toml::from_str(toml_txt.as_str()) {
         Err(e) => {
             Err(
@@ -222,5 +225,8 @@ pub fn read_configs_from_toml(file_path: &PathBuf) -> Result<Configs, Error> {
         },
         Ok(configs) => Ok(configs)
     }
+    */
+
+    Err(Error::new(ErrorKind::Other, "Must fix issue with deserializing"))
 }
 

@@ -1,11 +1,8 @@
-extern crate rustc_serialize;
 extern crate csv;
-
 
 pub type CSVStringRow = Vec<String>;
 
-// Automatically generate `RustcDecodable` and `RustcEncodable` trait implementations
-#[derive(RustcDecodable, RustcEncodable, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Product {
     pub language: String,
     pub prod_key: String,
@@ -14,7 +11,19 @@ pub struct Product {
     pub prod_type: Option<String>
 }
 
-#[derive(RustcDecodable, RustcEncodable, Clone)]
+impl Product {
+    pub fn empty() -> Product {
+        Product {
+            language: "".to_string(),
+            prod_key: "".to_string(),
+            version: "".to_string(),
+            name: "".to_string(),
+            prod_type: None
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ProductSHA {
     pub packaging: String,
     pub method: String,
@@ -33,13 +42,13 @@ impl ProductSHA {
     }
 }
 
-#[derive(RustcDecodable, RustcEncodable)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ProductLicense {
     pub name: String,
     pub url: String
 }
 
-#[derive(RustcDecodable, RustcEncodable)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ProductMatch {
     pub sha: Option<ProductSHA>,
     pub product: Option<Product>,
@@ -123,8 +132,8 @@ impl RowSerializer for ProductMatch {
     fn to_rows(&self) -> Vec<CSVStringRow> {
         let mut csv_row: CSVStringRow = vec![];
 
-        csv_row = match self.sha.clone() {
-            Some(x) => {
+        csv_row = match self.sha {
+            Some(ref x) => {
                 let mut sha_rows = x.to_rows().pop().unwrap();
                 csv_row.append(&mut sha_rows);
                 csv_row
@@ -138,11 +147,11 @@ impl RowSerializer for ProductMatch {
             }
         };
 
-        csv_row = match self.product.clone() {
-            Some(x) => {
-                csv_row.push(x.language);
-                csv_row.push(x.prod_key);
-                csv_row.push(x.version);
+        csv_row = match self.product {
+            Some(ref x) => {
+                csv_row.push(x.language.clone() );
+                csv_row.push(x.prod_key.clone() );
+                csv_row.push(x.version.clone());
 
                 csv_row
             },

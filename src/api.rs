@@ -7,7 +7,8 @@ use hyper::net::HttpsConnector;
 use hyper_native_tls::NativeTlsClient;
 
 use std::time::Duration;
-use rustc_serialize::json::Json;
+use serde::{Serialize, Deserialize};
+use serde_json;
 use product;
 use configs::{Configs, ApiConfigs, ProxyConfigs};
 
@@ -173,10 +174,36 @@ pub fn fetch_product<'a>(
         .append_pair("api_key", api_confs.key.clone().unwrap().as_str());
 
     let json_txt = request_json( &resource_url, &confs.proxy );
-    process_product_response(json_txt, Some(prod_url))
+    return Err(
+        Error::new(
+            ErrorKind::InvalidData,
+            "Waiting for refactoring"
+        )
+    )
+    //process_product_response(json_txt, Some(prod_url))
 }
 
-//TODO: log all error details
+#[derive(Serialize, Deserialize, Debug)]
+struct ApiError {
+    error: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ShaItem {
+    language: String,
+    prod_key: String,
+    version: String,
+    sha_value: String,
+    sha_method: String,
+    prod_type: Option<String>,
+    group_id: Option<String>,
+    artifact_id: Option<String>,
+    classifier: Option<String>,
+    packaging: Option<String>
+}
+
+type ShaItems = Vec<ShaItem>;
+
 //-- helper functions
 pub fn process_sha_response(json_text: Option<String> ) -> Result<product::ProductMatch, io::Error> {
     if json_text.is_none() {
@@ -185,58 +212,55 @@ pub fn process_sha_response(json_text: Option<String> ) -> Result<product::Produ
         )
     }
 
-    let json_res = Json::from_str( &json_text.clone().unwrap());
-    if json_res.is_err() {
-        return Err(
-            Error::new(
-                ErrorKind::Other,
-                "Failed to parse response from SHA endpoint - server failed to process request"
-            )
-        )
+    let res: serde_json::Value = serde_json::from_str(json_text.unwrap().as_str())?;
+
+    if res.is_object() && res.get("error").is_some() {
+        let e = Error::new(
+            ErrorKind::Other,
+            r#"API rate limit reached. Go to https://www.versioneye.com and upgrade your
+                subscription to a higher plan."#
+        );
+
+        return Err(e);
     }
 
-    let json_obj = json_res.unwrap();
-    //if response includes error field in HTTP200 response
-    if let Some(_) = json_obj.find("error") {
-        return Err(
-            Error::new(
-                ErrorKind::Other,
-                "API rate limit reached. Go to https://www.versioneye.com and upgrade your subscription to a higher plan."
-            )
-        )
+    if !res.is_array() {
+        let e = Error::new( ErrorKind::Other, "Unsupported SHA response - expected array");
+        return Err(e);
     }
 
-    if !json_obj.is_array() {
-        return Err(Error::new( ErrorKind::Other, "The structure of SHA response has been changed"));
+    let mut shas = res.as_array().unwrap();
+    if shas.len() == 0 {
+        let e = Error::new( ErrorKind::Other, "No match for the SHA");
+        return Err(e);
     }
-
-    let product_doc = match json_obj.as_array() {
-        Some(products) if products.len() > 0 => products[0].clone(),
-        _ => return Err(Error::new(ErrorKind::Other, "Empty response"))
-    };
-
+    
+    let doc:ShaItem = serde_json::from_value(shas[0].clone()).unwrap();
     let the_prod = product::Product {
         name: "".to_string(),
-        language: product_doc["language"].as_string().expect("No field `language`").to_string(),
-        prod_key: product_doc["prod_key"].as_string().expect("No field `prod_key`").to_string(),
-        version: product_doc["version"].as_string().expect("No field `version`").to_string(),
-        prod_type: Some( product_doc["prod_type"].as_string().expect("No field `prod_types`").to_string() )
+        language: doc.language,
+        prod_key: doc.prod_key,
+        version: doc.version,
+        prod_type: doc.prod_type
     };
 
     let the_sha = product::ProductSHA {
-        packaging: product_doc["packaging"].as_string().unwrap_or("unknown").to_string(),
-        method: product_doc["sha_method"].as_string().expect("No field `sha_method`").to_string(),
-        value: product_doc["sha_value"].as_string().expect("No field `sha_value`").to_string(),
+        packaging: doc.packaging.unwrap_or("unknown".to_string()),
+        method: doc.sha_method,
+        value: doc.sha_value,
         filepath: None
     };
 
     Ok(product::ProductMatch::new(the_prod, the_sha))
+
 }
 
 // converts the response of product endpoint into ProductMatch struct
+
 pub fn process_product_response(
     json_text: Option<String>, prod_url: Option<String>
 ) -> Result<product::ProductMatch, io::Error> {
+    /*
 
     if json_text.is_none() {
         return Err(
@@ -247,7 +271,7 @@ pub fn process_product_response(
         )
     }
 
-    let json_res = Json::from_str( &json_text.clone().unwrap());
+    let json_res = serde_json::from_str( &json_text.clone().unwrap() );
     if json_res.is_err() {
         return Err(
             Error::new(
@@ -309,4 +333,13 @@ pub fn process_product_response(
     };
 
     Ok(the_match)
+
+    */
+
+
+    Err(
+        Error::new( ErrorKind::Other, "Must be refactored" )
+    )
+
 }
+

@@ -249,6 +249,7 @@ fn test_api_process_sha_response(){
     "#;
 
     let res = api::process_sha_response(Some(res_body.to_string()));
+
     if let Some(prod_match) = res.ok() {
 
         assert_eq!(true, prod_match.sha.is_some());
@@ -265,6 +266,8 @@ fn test_api_process_sha_response(){
         assert_eq!("commons-beanutils/commons-beanutils".to_string(), prod.prod_key);
         assert_eq!("1.7.0".to_string(), prod.version);
         assert_eq!("".to_string(), prod.name);
+    } else {
+        assert_eq!("", "Failed to process sha response");
     }
 }
 
