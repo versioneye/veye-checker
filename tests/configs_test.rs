@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use veye_checker::configs;
 
 #[test]
-fn read_api_configs_from_env_test(){
+fn test_configs_read_api_configs_from_env(){
     //set up env
     env::set_var("VERSIONEYE_API_KEY", "veye-123");
     env::set_var("VERSIONEYE_API_HOST", "api.veye.com");
@@ -32,7 +32,7 @@ fn read_api_configs_from_env_test(){
 }
 
 #[test]
-fn read_csv_configs_from_env_test(){
+fn test_configs_read_csv_configs_from_env(){
     //set up env
     env::set_var("VERSIONEYE_CSV_SEPARATOR", ",");
     env::set_var("VERSIONEYE_CSV_QUOTE", "'");
@@ -55,7 +55,7 @@ fn read_csv_configs_from_env_test(){
 }
 
 #[test]
-fn read_proxy_configs_from_env_test(){
+fn test_configs_read_proxy_configs_from_env(){
     //set up env variables
     env::set_var("VERSIONEYE_PROXY_HOST", "127.0.0.1");
     env::set_var("VERSIONEYE_PROXY_PORT", "3128");
@@ -74,7 +74,7 @@ fn read_proxy_configs_from_env_test(){
 }
 
 #[test]
-fn read_configs_from_toml_test(){
+fn test_configs_read_configs_from_toml(){
 
     let toml_path = PathBuf::from("./tests/fixtures/veye_checker.toml");
     let confs = configs::read_configs_from_toml(&toml_path).expect("Failed to parse test TOML");
@@ -98,9 +98,51 @@ fn read_configs_from_toml_test(){
 
 }
 
+#[test]
+fn test_configs_read_toml_file_only_api_configs(){
+    let toml_path = PathBuf::from("./tests/fixtures/only_api.toml");
+    let confs = configs::read_configs_from_toml(&toml_path).expect("Failed to parse `only_api.toml`");
+
+    //specified fields
+    assert_eq!(confs.api.host, Some("only.api.com".to_string()));
+    assert_eq!(confs.api.path, Some("api/v4".to_string()));
+    assert_eq!(confs.api.port, Some(8010));
+
+    //unspecified fields
+    assert_eq!(confs.api.key, None);
+    assert_eq!(confs.api.scheme, None);
+
+}
 
 #[test]
-fn read_configs_test(){
+fn test_configs_read_toml_file_only_csv_configs(){
+    let toml_path = PathBuf::from("./tests/fixtures/only_csv.toml");
+    let confs = configs::read_configs_from_toml(&toml_path).expect("Failed to parse `only_csv.toml`");
+
+    //specified fields
+    assert_eq!(confs.csv.separator, Some(",".to_string()));
+
+    //unspecified fields
+    assert_eq!(confs.csv.flexible, None);
+    assert_eq!(confs.csv.quote, None);
+
+}
+
+#[test]
+fn test_configs_read_toml_file_only_proxy_configs(){
+    let toml_path = PathBuf::from("./tests/fixtures/only_proxy.toml");
+    let confs = configs::read_configs_from_toml(&toml_path).expect("Failed to parse `only_csv.toml`");
+
+    //specified fields
+    assert_eq!(confs.proxy.host, Some("192.168.2.1".to_string()));
+
+    //unspecified fields
+    assert_eq!(confs.proxy.port, None);
+
+}
+
+#[test]
+fn test_configs_read_toml_file(){
     //set up env
     env::set_var("VERSIONEYE_API_KEY", "veye-123");
     env::set_var("VERSIONEYE_API_HOST", "api.veye.com");
@@ -139,4 +181,7 @@ fn read_configs_test(){
     env::remove_var("VERSIONEYE_CSV_SEPARATOR");
     env::remove_var("VERSIONEYE_CSV_FLEXIBLE");
 }
+
+
+
 

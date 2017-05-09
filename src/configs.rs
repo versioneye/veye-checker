@@ -207,21 +207,51 @@ pub fn read_configs_from_env() -> Result<Configs, Error> {
     Ok(configs)
 }
 
+#[derive(Deserialize, Debug)]
+struct TomlConfigs {
+    api: Option<ApiConfigs>,
+    csv: Option<CSVConfigs>,
+    proxy: Option<ProxyConfigs>
+}
+
+impl TomlConfigs {
+
+    //move optional values into Configs structure
+    fn into_configs(&self) -> Configs {
+        let mut confs = Configs::default();
+
+        if let Some(toml_api) = self.api.clone() {
+            confs.api = toml_api;
+        }
+
+        if let Some(toml_csv) = self.csv.clone() {
+            confs.csv = toml_csv;
+        }
+
+        if let Some(toml_proxy) = self.proxy.clone() {
+            confs.proxy = toml_proxy;
+        }
+
+        confs.clone()
+    }
+}
+
 pub fn read_configs_from_toml(file_path: &PathBuf) -> Result<Configs, Error> {
     let mut toml_file = File::open(file_path)?;
     let mut toml_txt = String::new();
     toml_file.read_to_string(&mut toml_txt)?;
 
-    match toml::from_str(toml_txt.as_str()) {
-        Err(e) => {
+    match toml::from_str::<TomlConfigs>(toml_txt.as_str()) {
+        Ok(toml_configs) => Ok(toml_configs.into_configs()),
+        Err(_) => {
             Err(
                 Error::new(
                     ErrorKind::InvalidData,
-                    format!("Failed to extract config data from TOML {}", e)
+                    format!("Failed to extract config data from TOML {:?}", file_path.as_os_str())
                 )
             )
-        },
-        Ok(configs) => Ok(configs)
+        }
+
     }
 }
 

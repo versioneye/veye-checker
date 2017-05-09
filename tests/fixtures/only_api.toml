@@ -1,0 +1,4 @@
+[api]
+host = "only.api.com"
+path = "api/v4"
+port = 8010
