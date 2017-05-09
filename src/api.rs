@@ -174,13 +174,7 @@ pub fn fetch_product<'a>(
         .append_pair("api_key", api_confs.key.clone().unwrap().as_str());
 
     let json_txt = request_json( &resource_url, &confs.proxy );
-    return Err(
-        Error::new(
-            ErrorKind::InvalidData,
-            "Waiting for refactoring"
-        )
-    )
-    //process_product_response(json_txt, Some(prod_url))
+    process_product_response(json_txt, Some(prod_url))
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -234,7 +228,7 @@ pub fn process_sha_response(json_text: Option<String> ) -> Result<product::Produ
         let e = Error::new( ErrorKind::Other, "No match for the SHA");
         return Err(e);
     }
-    
+
     let doc:ShaItem = serde_json::from_value(shas[0].clone()).unwrap();
     let the_prod = product::Product {
         name: "".to_string(),
@@ -256,61 +250,64 @@ pub fn process_sha_response(json_text: Option<String> ) -> Result<product::Produ
 }
 
 // converts the response of product endpoint into ProductMatch struct
+#[derive(Serialize, Deserialize, Debug)]
+struct ProductItem {
+    name: String,
+    language: String,
+    prod_key: String,
+    version: String,
+    prod_type: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct LicenseItem {
+    name: String,
+    url: Option<String>
+}
 
 pub fn process_product_response(
     json_text: Option<String>, prod_url: Option<String>
 ) -> Result<product::ProductMatch, io::Error> {
-    /*
 
     if json_text.is_none() {
         return Err(
-            Error::new(
-                ErrorKind::Other,
-                "API returned empty response string - server may not responding"
-            )
+            Error::new( ErrorKind::Other, "No response from API")
         )
     }
 
-    let json_res = serde_json::from_str( &json_text.clone().unwrap() );
-    if json_res.is_err() {
-        return Err(
-            Error::new(
-                ErrorKind::Other,
-                "Failed to parse response from the Product endpoint - server failed to process request"
-            )
-        )
-    }
-
-    let json_obj = json_res.unwrap();
-    if !json_obj.is_object() {
-        return Err(Error::new(ErrorKind::Other, "Response had no product details"));
+    let res: serde_json::Value = serde_json::from_str( &json_text.unwrap().as_str() )?;
+    if !res.is_object() {
+        return Err(Error::new(ErrorKind::Other, "No product details"));
     }
 
     //if response includes error field in HTTP200 response
     // NB! it may include other errors than limit, but @Rob asked to see custom Limit error message
-    if let Some(_) = json_obj.find("error") {
-        return Err(
-            Error::new(
-                ErrorKind::Other,
-                "API rate limit reached. Go to https://www.versioneye.com and upgrade your subscription to a higher plan."
-            )
-        )
+    if res.is_object() && res.get("error").is_some() {
+        let e = Error::new(
+            ErrorKind::Other,
+            r#"API rate limit reached. Go to https://www.versioneye.com and upgrade your
+                subscription to a higher plan."#
+        );
+
+        return Err(e);
     }
 
-    let product_doc = json_obj.as_object().expect("Failed to fetch product document");
+    let product_doc:ProductItem = serde_json::from_value(res.clone())?;
     let the_prod = product::Product {
-        name: product_doc["name"].as_string().unwrap().to_string(),
-        language: product_doc["language"].as_string().unwrap().to_string(),
-        prod_key: product_doc["prod_key"].as_string().unwrap().to_string(),
-        version: product_doc["version"].as_string().unwrap().to_string(),
-        prod_type: Some( product_doc["prod_type"].as_string().unwrap_or("").to_string() )
+        name: product_doc.name,
+        language: product_doc.language,
+        prod_key: product_doc.prod_key,
+        version: product_doc.version,
+        prod_type: Some( product_doc.prod_type )
     };
 
-    let licenses = match product_doc["licenses"].as_array() {
+    //extract license details
+    let licenses = match res["licenses"].as_array() {
         Some(arr) => arr.iter().fold(vec![], |mut acc, ref x| {
+            let lic_doc = x.as_object().unwrap();
             acc.push(product::ProductLicense {
-                name: x["name"].as_string().unwrap().to_string(),
-                url: x["url"].as_string().unwrap_or("").to_string()
+                name: lic_doc["name"].as_str().unwrap_or("unknown").to_string(),
+                url: lic_doc["url"].as_str().unwrap_or("").to_string()
             });
 
             acc
@@ -318,10 +315,12 @@ pub fn process_product_response(
         None      => vec![]
     };
 
-    let n_vulns = match product_doc["security_vulnerabilities"].as_array() {
+    //count number of vulnerabilities
+    let n_vulns = match res["security_vulnerabilities"].as_array() {
         Some(arr) => arr.len() as u32,
         None      => 0 as u32
     };
+
 
     let the_match = product::ProductMatch {
         sha: None,
@@ -333,13 +332,6 @@ pub fn process_product_response(
     };
 
     Ok(the_match)
-
-    */
-
-
-    Err(
-        Error::new( ErrorKind::Other, "Must be refactored" )
-    )
 
 }
 
