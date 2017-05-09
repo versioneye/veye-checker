@@ -14,10 +14,26 @@ use configs::{Configs, ApiConfigs, ProxyConfigs};
 
 const HOST_URL: &'static str = "https://www.versioneye.com";
 
-fn to_product_url(lang: &str, prod_key: &str, version: &str) -> String {
-    format!("{}/{}/{}/{}", HOST_URL, lang, prod_key, version)
+//it is used to build url to the product page (SAAS or Enterprise)
+pub fn to_product_url(api_confs: &ApiConfigs, lang: &str, prod_key: &str, version: &str) -> String {
+    let scheme = match api_confs.scheme.clone() {
+        Some(val)   => val,
+        None        => "http".to_string()
+    };
+    let host = match api_confs.host.clone() {
+        Some(val)   => val,
+        None        => HOST_URL.to_string()
+    };
+
+    let host_url = match api_confs.port.clone() {
+        Some(port)  => format!("{}://{}:{}", scheme, host, port),
+        None        => format!("{}://{}", scheme, host )
+    };
+
+    format!("{}/{}/{}/{}", host_url, lang, prod_key, version)
 }
 
+//it's used to build API url
 fn configs_to_url(api_confs: &ApiConfigs, resource_path: &str)
     -> Result<hyper::Url, hyper::error::ParseError> {
     let url_str = match api_confs.port {
@@ -152,7 +168,12 @@ pub fn fetch_product<'a>(
     let encoded_prod_key = encode_prod_key(&prod_key);
     let encoded_lang = encode_language(lang);
     let resource_path = format!("products/{}/{}", encoded_lang.clone(), encoded_prod_key.clone());
-    let prod_url = to_product_url(encoded_lang.clone().as_str(), encoded_prod_key.clone().as_str(), version);
+    let prod_url = to_product_url(
+        &confs.api,
+        encoded_lang.clone().as_str(),
+        prod_key,
+        version
+    );
 
     let mut resource_url = match configs_to_url(&api_confs, resource_path.as_str()) {
         Ok(the_url) => the_url,

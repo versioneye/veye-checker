@@ -28,6 +28,28 @@ fn test_api_encode_sha(){
 }
 
 #[test]
+fn test_api_to_product_url_with_default_settings(){
+    let api_confs = configs::ApiConfigs::default();
+    let prod_url = api::to_product_url(&api_confs, "rust", "serde", "0.4.0");
+    assert_eq!("https://www.versioneye.com/rust/serde/0.4.0".to_string(), prod_url);
+}
+
+#[test]
+fn test_api_to_product_url_with_overridden_confs(){
+    let api_confs = configs::ApiConfigs {
+        host: Some("abc.de".to_string()),
+        port: Some(3000),
+        scheme: Some("http".to_string()),
+        path: None,
+        key: None
+    };
+
+    let prod_url = api::to_product_url(&api_confs, "rust", "serde", "0.4.1");
+    assert_eq!("http://abc.de:3000/rust/serde/0.4.1".to_string(), prod_url);
+}
+
+
+#[test]
 #[cfg(feature="api")]
 fn test_api_call_fetch_product_by_sha(){
 
