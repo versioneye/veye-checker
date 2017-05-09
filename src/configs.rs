@@ -208,12 +208,10 @@ pub fn read_configs_from_env() -> Result<Configs, Error> {
 }
 
 pub fn read_configs_from_toml(file_path: &PathBuf) -> Result<Configs, Error> {
-    //todo: check does the file exists
     let mut toml_file = File::open(file_path)?;
     let mut toml_txt = String::new();
     toml_file.read_to_string(&mut toml_txt)?;
 
-    /*
     match toml::from_str(toml_txt.as_str()) {
         Err(e) => {
             Err(
@@ -225,8 +223,5 @@ pub fn read_configs_from_toml(file_path: &PathBuf) -> Result<Configs, Error> {
         },
         Ok(configs) => Ok(configs)
     }
-    */
-
-    Err(Error::new(ErrorKind::Other, "Must fix issue with deserializing"))
 }
 
