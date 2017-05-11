@@ -3,12 +3,13 @@ extern crate veye_checker;
 use std::path::PathBuf;
 use std::fs::{self, File};
 use std::io::Read;
-use veye_checker::{tasks, product, configs};
+use veye_checker::{tasks, product, configs, digest_ext_table};
 
 #[test]
 fn test_task_start_path_scanner(){
     let test_dir = PathBuf::from("test/fixtures/files");
-    let (sha_ch, h1) = tasks::start_path_scanner(test_dir);
+    let ext_table = digest_ext_table::DigestExtTable::default();
+    let (sha_ch, h1) = tasks::start_path_scanner(ext_table, test_dir);
 
     for sha in sha_ch.into_iter() {
         assert_eq!(true, sha.value.len() > 0);
@@ -24,7 +25,8 @@ fn test_task_start_path_scanner_folder_dont_exist(){
     let test_dir = PathBuf::from("test/fixtures/dont_exists");
     assert_eq!(false, test_dir.exists());
 
-    let (_, h1) = tasks::start_path_scanner(test_dir);
+    let ext_table = digest_ext_table::DigestExtTable::default();
+    let (_, h1) = tasks::start_path_scanner(ext_table, test_dir);
 
     let res = h1.join().unwrap();
     assert_eq!(true, res.is_err())

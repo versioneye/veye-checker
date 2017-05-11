@@ -15,8 +15,9 @@ use product::RowSerializer;
 use configs;
 use api;
 use checker;
+use digest_ext_table::DigestExtTable;
 
-pub fn start_path_scanner(dir: PathBuf)
+pub fn start_path_scanner(ext_table: DigestExtTable, dir: PathBuf)
     -> (Receiver<ProductSHA>, thread::JoinHandle<Result<(), io::Error>> ) {
 
     let (sender, receiver) = channel::<ProductSHA>();
@@ -24,18 +25,20 @@ pub fn start_path_scanner(dir: PathBuf)
         if dir.exists() == false {
             return Err(
               io::Error::new(ErrorKind::Other, "Scannable folder doesnt exists")
-
             );
         }
 
         for entry in WalkDir::new(&dir).into_iter().filter_map(|e| e.ok()){
-            if let Some(sha) = checker::digest_file(&entry.path()) {
-                if sender.send(sha).is_err() {
-                    println!(
-                        "start_path_scanner2: failed to send ProductSHA for {}",
-                        entry.path().display()
-                    );
-                    break
+
+            if let Some(shas) = checker::digest_file(&ext_table, &entry.path()) {
+                for sha in shas.into_iter(){
+                    if sender.send(sha).is_err() {
+                        println!(
+                            "start_path_scanner2: failed to send ProductSHA for {}",
+                            entry.path().display()
+                        );
+                        break
+                    }
                 }
             }
         }

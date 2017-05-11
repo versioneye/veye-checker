@@ -5,7 +5,7 @@ use getopts::Options;
 use std::path::PathBuf;
 use std::env;
 
-use veye_checker::{product, configs, tasks};
+use veye_checker::{product, configs, tasks, digest_ext_table};
 
 fn show_usage(program_name: &str, opts: Options) -> Result<bool, String> {
     let brief = format!(r#"
@@ -80,8 +80,9 @@ fn do_resolve_task(matches: &getopts::Matches) -> Result<bool, String> {
     };
 
     // execute command pipeline
+    let ext_table = digest_ext_table::DigestExtTable::default();
     let dir = PathBuf::from(&dir_txt);
-    let (sha_ch, h1) = tasks::start_path_scanner(dir);
+    let (sha_ch, h1) = tasks::start_path_scanner(ext_table, dir);
     let (product_ch, h2) = tasks::start_sha_fetcher(global_configs.clone(), sha_ch);
     let h3 = match matches.opt_str("o") {
         Some(out_path) => {
@@ -109,9 +110,11 @@ fn do_shas_task(matches: &getopts::Matches) -> Result<bool, String> {
     } else {
         matches.free[1].clone()
     };
-    let dir = PathBuf::from(&dir_txt);
 
-    let (sha_ch, h1) = tasks::start_path_scanner(dir);
+
+    let dir = PathBuf::from(&dir_txt);
+    let ext_table = digest_ext_table::DigestExtTable::default();
+    let (sha_ch, h1) = tasks::start_path_scanner(ext_table, dir);
     let h2 = match matches.opt_str("o") {
         Some(outfile_path) => {
             let outpath = PathBuf::from(&outfile_path);

@@ -21,6 +21,7 @@ extern crate serde;
 
 pub mod api;
 pub mod product;
+pub mod digest_ext_table;
 pub mod checker;
 pub mod configs;
 
