@@ -3,6 +3,7 @@ extern crate veye_checker;
 use std::env;
 use std::path::PathBuf;
 use veye_checker::configs;
+use veye_checker::digest_ext_table::{DigestAlgo, DigestExtTable};
 
 #[test]
 fn test_configs_read_api_configs_from_env(){
@@ -131,7 +132,7 @@ fn test_configs_read_toml_file_only_csv_configs(){
 #[test]
 fn test_configs_read_toml_file_only_proxy_configs(){
     let toml_path = PathBuf::from("./tests/fixtures/only_proxy.toml");
-    let confs = configs::read_configs_from_toml(&toml_path).expect("Failed to parse `only_csv.toml`");
+    let confs = configs::read_configs_from_toml(&toml_path).expect("Failed to parse `only_proxy.toml`");
 
     //specified fields
     assert_eq!(confs.proxy.host, Some("192.168.2.1".to_string()));
@@ -140,6 +141,48 @@ fn test_configs_read_toml_file_only_proxy_configs(){
     assert_eq!(confs.proxy.port, None);
 
 }
+
+#[test]
+fn test_configs_digest_into_table(){
+    let md5_confs = configs::DigestConfigItem::new(
+        false, vec!["jar".to_string(), "pkg".to_string()]
+    );
+    let sha1_confs = configs::DigestConfigItem::new(true, vec!["py".to_string()]);
+    let digest_configs = configs::DigestConfigs::new(
+        Some(md5_confs), Some(sha1_confs), None
+    );
+
+    let ext_table = digest_configs.into_digest_ext_table();
+    assert_eq!(false, ext_table.is_blocked(DigestAlgo::Md5));
+    assert_eq!(true, ext_table.is_md5("jar".to_string()));
+    assert_eq!(true, ext_table.is_md5("pkg".to_string()));
+
+    assert_eq!(true, ext_table.is_blocked(DigestAlgo::Sha1));
+    assert_eq!(false, ext_table.is_sha1("py".to_string()));
+
+    //keeps default settings for Sha512
+    assert_eq!(false, ext_table.is_blocked(DigestAlgo::Sha512));
+    assert_eq!(true, ext_table.is_sha512("nupkg".to_string()));
+
+}
+
+#[test]
+fn test_configs_read_toml_file_extenstions(){
+    let toml_path = PathBuf::from("./tests/fixtures/only_file_exts.toml");
+    let confs = configs::read_configs_from_toml(&toml_path).expect("Failed to parse `only_file_exts`");
+
+    let ext_table = confs.digests;
+
+    assert_eq!(false, ext_table.is_blocked(DigestAlgo::Md5));
+    assert_eq!(true, ext_table.is_md5("whl".to_string()));
+    assert_eq!(true, ext_table.is_md5("gz".to_string()));
+    assert_eq!(false, ext_table.is_md5("jar".to_string()));
+
+    assert_eq!(true, ext_table.is_blocked(DigestAlgo::Sha1));
+    assert_eq!(false, ext_table.is_sha1("jar".to_string()));
+
+}
+
 
 #[test]
 fn test_configs_read_toml_file(){

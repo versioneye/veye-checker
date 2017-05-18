@@ -15,7 +15,6 @@ use digest_ext_table::{DigestAlgo, DigestExtTable};
 pub fn digest_sha1(filepath: &Path) -> Result<String, Error> {
     let mut f = File::open(filepath).ok().expect("Failed to read file");
     let mut buffer = Vec::new();
-
     let mut hasher = Sha1::new();
 
     f.read_to_end(&mut buffer).unwrap();

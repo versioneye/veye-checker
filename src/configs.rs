@@ -4,9 +4,11 @@ use std::default::{Default};
 use std::io::{Read, Error, ErrorKind};
 use std::path::PathBuf;
 use std::fs::File;
-
 use toml;
 use serde::{Serialize, Deserialize};
+
+use digest_ext_table::{DigestAlgo, DigestExtTable};
+
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ApiConfigs {
@@ -100,13 +102,86 @@ impl Default for ProxyConfigs {
     }
 }
 
+//-- Configs for Digest --------------------------------------------------------
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DigestConfigItem {
+    pub blocked: Option<bool>,
+    pub exts: Option<Vec<String>>
+}
+
+impl DigestConfigItem {
+    pub fn new(blocked: bool, exts: Vec<String>) -> DigestConfigItem {
+        DigestConfigItem {
+            blocked: Some(blocked),
+            exts: Some(exts)
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DigestConfigs {
+    pub md5: Option<DigestConfigItem>,
+    pub sha1: Option<DigestConfigItem>,
+    pub sha512: Option<DigestConfigItem>
+}
+
+impl DigestConfigs {
+    pub fn new(
+        md5: Option<DigestConfigItem>, sha1: Option<DigestConfigItem>, sha512: Option<DigestConfigItem>
+    ) -> DigestConfigs {
+        DigestConfigs {
+            md5: md5,
+            sha1: sha1,
+            sha512: sha512
+        }
+    }
+
+    // turns DigestConfigs into DigestExtTable
+    pub fn into_digest_ext_table(&self) -> DigestExtTable {
+        let mut ext_table = DigestExtTable::default();
+
+        if let Some(md5_confs) = self.md5.to_owned() {
+            self.insert_algo_confs(&mut ext_table, DigestAlgo::Md5, &md5_confs )
+        }
+
+        if let Some(sha1_confs) = self.sha1.to_owned() {
+            self.insert_algo_confs(&mut ext_table, DigestAlgo::Sha1, &sha1_confs )
+        }
+
+        if let Some(sha512_confs) = self.sha512.to_owned() {
+            self.insert_algo_confs(&mut ext_table, DigestAlgo::Sha512, &sha512_confs )
+        }
+
+        ext_table
+    }
+
+    fn insert_algo_confs(&self, ext_table: &mut DigestExtTable, algo: DigestAlgo, config_item: &DigestConfigItem){
+
+        //add algorithm into blocked list only if it blocked fields is specified and equals true
+        if let Some(is_blocked) = config_item.blocked {
+            if is_blocked == true {
+                ext_table.block(algo);
+                return; //there's no point to insert extensions for blocked items
+            }
+        }
+
+        if let Some(exts) = config_item.exts.to_owned() {
+            ext_table.clear(algo);
+            ext_table.add_many(algo, exts);
+        }
+
+    }
+}
+
 //-- Configs ------------------------------------------------------------------
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Configs {
     pub api: ApiConfigs,
     pub csv: CSVConfigs,
-    pub proxy: ProxyConfigs
+    pub proxy: ProxyConfigs,
+    pub digests: DigestExtTable
 }
 
 impl Configs {
@@ -114,6 +189,8 @@ impl Configs {
         self.api.merge_to(&mut target.api);
         self.csv.merge_to(&mut target.csv);
         self.proxy.merge_to(&mut target.proxy);
+
+        target.digests = self.digests.clone()
     }
 }
 
@@ -122,7 +199,8 @@ impl Default for Configs {
         Configs {
             api: ApiConfigs::default(),
             csv: CSVConfigs::default(),
-            proxy: ProxyConfigs::default()
+            proxy: ProxyConfigs::default(),
+            digests: DigestExtTable::default()
         }
     }
 }
@@ -211,7 +289,8 @@ pub fn read_configs_from_env() -> Result<Configs, Error> {
 struct TomlConfigs {
     api: Option<ApiConfigs>,
     csv: Option<CSVConfigs>,
-    proxy: Option<ProxyConfigs>
+    proxy: Option<ProxyConfigs>,
+    digests: Option<DigestConfigs>
 }
 
 impl TomlConfigs {
@@ -220,6 +299,7 @@ impl TomlConfigs {
     fn into_configs(&self) -> Configs {
         let mut confs = Configs::default();
 
+        //TODO: how to get rid of those clone()'s
         if let Some(toml_api) = self.api.clone() {
             confs.api = toml_api;
         }
@@ -230,6 +310,10 @@ impl TomlConfigs {
 
         if let Some(toml_proxy) = self.proxy.clone() {
             confs.proxy = toml_proxy;
+        }
+
+        if let Some(toml_digests) = self.digests.clone() {
+            confs.digests = toml_digests.into_digest_ext_table();
         }
 
         confs.clone()

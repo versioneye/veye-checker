@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 
-#[derive(Hash, Eq, PartialEq, Debug)]
+#[derive(Hash, Eq, PartialEq, Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum DigestAlgo {
     Md5,
     Sha1,
     Sha512   //nuget: Sha512 finalized with Base64
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DigestExtTable {
     md5: HashSet<String>,
     sha1: HashSet<String>,
@@ -16,16 +17,20 @@ pub struct DigestExtTable {
 }
 
 impl DigestExtTable {
+    pub fn is_blocked(&self, algo: DigestAlgo) -> bool {
+        self.blocked.contains(&algo)
+    }
+
     pub fn is_md5(&self, file_ext: String) -> bool {
-        !self.blocked.contains(&DigestAlgo::Md5) && self.md5.contains(&file_ext)
+        !self.is_blocked(DigestAlgo::Md5) && self.md5.contains(&file_ext)
     }
 
     pub fn is_sha1(&self, file_ext: String) -> bool {
-        !self.blocked.contains(&DigestAlgo::Sha1) && self.sha1.contains(&file_ext)
+        !self.is_blocked(DigestAlgo::Sha1) && self.sha1.contains(&file_ext)
     }
 
     pub fn is_sha512(&self, file_ext: String) -> bool {
-        !self.blocked.contains(&DigestAlgo::Sha512) && self.sha512.contains(&file_ext)
+        !self.is_blocked(DigestAlgo::Sha512) && self.sha512.contains(&file_ext)
     }
 
     pub fn add(&mut self, algo: DigestAlgo, file_ext: String) -> bool {
@@ -34,6 +39,30 @@ impl DigestExtTable {
             DigestAlgo::Sha1    => self.sha1.insert(file_ext),
             DigestAlgo::Sha512  => self.sha512.insert(file_ext),
             _                   => false
+        }
+    }
+
+    pub fn clear(&mut self, algo: DigestAlgo) -> bool {
+        match algo {
+            DigestAlgo::Md5 => {
+                self.md5.clear();
+                self.md5.is_empty()
+            },
+            DigestAlgo::Sha1 => {
+                self.sha1.clear();
+                self.sha1.is_empty()
+            },
+            DigestAlgo::Sha512 => {
+                self.sha512.clear();
+                self.sha512.is_empty()
+            },
+            _ => false
+        }
+    }
+
+    pub fn add_many(&mut self, algo: DigestAlgo, file_exts: Vec<String>) {
+        for ext in &file_exts {
+            self.add(algo, ext.to_string());
         }
     }
 

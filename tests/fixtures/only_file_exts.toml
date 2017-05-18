@@ -1,0 +1,6 @@
+[digests.md5]
+blocked = false
+exts = ["whl", "gz"]
+
+[digests.sha1]
+blocked = true
