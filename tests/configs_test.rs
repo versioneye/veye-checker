@@ -75,6 +75,19 @@ fn test_configs_read_proxy_configs_from_env(){
 }
 
 #[test]
+fn test_configs_read_scan_configs_from_env(){
+    env::set_var("VERSIONEYE_SCAN_MAX_FILE_SIZE", "2048");
+    env::set_var("VERSIONEYE_SCAN_MIN_FILE_SIZE", "64");
+
+    let confs = configs::read_configs_from_env().expect("Failed to read configs from ENV");
+    assert_eq!(Some(2048), confs.scan.max_file_size);
+    assert_eq!(Some(64), confs.scan.min_file_size);
+
+    env::remove_var("VERSIONEYE_SCAN_MAX_FILE_SIZE");
+    env::remove_var("VERSIONEYE_SCAN_MIN_FILE_SIZE");
+}
+
+#[test]
 fn test_configs_read_configs_from_toml(){
 
     let toml_path = PathBuf::from("./tests/fixtures/veye_checker.toml");
@@ -183,6 +196,14 @@ fn test_configs_read_toml_file_extenstions(){
 
 }
 
+#[test]
+fn test_configs_read_toml_only_scan_configs(){
+    let toml_path = PathBuf::from("./tests/fixtures/only_scan.toml");
+    let confs = configs::read_configs_from_toml(&toml_path).expect("Failed to parse `only_scan.toml`");
+
+    assert_eq!(Some(1024), confs.scan.max_file_size );
+    assert_eq!(Some(512), confs.scan.min_file_size);
+}
 
 #[test]
 fn test_configs_read_toml_file(){
@@ -209,13 +230,6 @@ fn test_configs_read_toml_file(){
     assert_eq!(confs.api.port, Some(8080));
     assert_eq!(confs.api.scheme, Some("https".to_string()));
 
-    //TODO: it has read-write conflicts when multiple test add&remove VARs at the same time
-    // due the that fact, it uses old ENV vars instead data from configfile
-    //CSV values should come from config file
-    //assert_eq!(Some(",".to_string()), confs.csv.separator);
-    //assert_eq!(Some("'".to_string()), confs.csv.quote);
-    //assert_eq!(Some(true), confs.csv.flexible);
-
     //cleanup env
     env::remove_var("VERSIONEYE_API_KEY");
     env::remove_var("VERSIONEYE_API_HOST");
@@ -224,7 +238,3 @@ fn test_configs_read_toml_file(){
     env::remove_var("VERSIONEYE_CSV_SEPARATOR");
     env::remove_var("VERSIONEYE_CSV_FLEXIBLE");
 }
-
-
-
-

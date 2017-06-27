@@ -10,6 +10,8 @@ use serde::{Serialize, Deserialize};
 use digest_ext_table::{DigestAlgo, DigestExtTable};
 
 
+pub static DEFAULT_MAX_SIZE:u64 = 64 * 1024 * 1024; // 64MB
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ApiConfigs {
     pub host: Option<String>,
@@ -174,6 +176,40 @@ impl DigestConfigs {
     }
 }
 
+
+//-- Scan configs -------------------------------------------------------------
+// used to limit file sizes
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ScanConfigs {
+    pub max_file_size: Option<u64>,
+    pub min_file_size: Option<u64>
+}
+
+impl ScanConfigs {
+
+    //copies fields values into target struct only if has Some value
+    fn merge_to(&self, target: &mut ScanConfigs){
+        if let Some(new_max_size) = self.max_file_size {
+            target.max_file_size = Some( new_max_size );
+        }
+
+        if let Some(new_min_size) = self.min_file_size {
+            target.min_file_size = Some( new_min_size );
+        }
+
+    }
+
+}
+
+impl Default for ScanConfigs {
+    fn default() -> ScanConfigs {
+        ScanConfigs {
+            max_file_size: Some(DEFAULT_MAX_SIZE),
+            min_file_size: Some(0)
+        }
+    }
+}
+
 //-- Configs ------------------------------------------------------------------
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -181,7 +217,8 @@ pub struct Configs {
     pub api: ApiConfigs,
     pub csv: CSVConfigs,
     pub proxy: ProxyConfigs,
-    pub digests: DigestExtTable
+    pub digests: DigestExtTable,
+    pub scan: ScanConfigs
 }
 
 impl Configs {
@@ -189,8 +226,10 @@ impl Configs {
         self.api.merge_to(&mut target.api);
         self.csv.merge_to(&mut target.csv);
         self.proxy.merge_to(&mut target.proxy);
+        self.scan.merge_to(&mut target.scan);
 
-        target.digests = self.digests.clone()
+        target.digests = self.digests.clone();
+
     }
 }
 
@@ -200,7 +239,8 @@ impl Default for Configs {
             api: ApiConfigs::default(),
             csv: CSVConfigs::default(),
             proxy: ProxyConfigs::default(),
-            digests: DigestExtTable::default()
+            digests: DigestExtTable::default(),
+            scan: ScanConfigs::default()
         }
     }
 }
@@ -226,13 +266,16 @@ pub fn read_configs(filepath: Option<String>) -> Configs {
 }
 
 pub fn read_configs_from_env() -> Result<Configs, Error> {
-    let re_api_key = Regex::new(r"\AVERSIONEYE_API_(\w+)\z").unwrap();
-    let re_csv_key = Regex::new(r"\AVERSIONEYE_CSV_(\w+)\z").unwrap();
+    let re_api_key   = Regex::new(r"\AVERSIONEYE_API_(\w+)\z").unwrap();
+    let re_csv_key   = Regex::new(r"\AVERSIONEYE_CSV_(\w+)\z").unwrap();
     let re_proxy_key = Regex::new(r"\AVERSIONEYE_PROXY_(\w+)\z").unwrap();
+    let re_scan_key  = Regex::new(r"\AVERSIONEYE_SCAN_(\w+)\z").unwrap();
 
     let mut configs = Configs::default();
 
     for (key, val) in env::vars() {
+
+        // read API configs
         if let Some(m) = re_api_key.captures(&key) {
             let api_val = val.clone();
 
@@ -280,6 +323,17 @@ pub fn read_configs_from_env() -> Result<Configs, Error> {
             }
         }
 
+        //read scan configs
+        if let Some(m) = re_scan_key.captures(&key){
+            let scan_val = val.clone();
+
+            match m.get(1).unwrap().as_str() {
+                "MAX_FILE_SIZE" => configs.scan.max_file_size = scan_val.parse::<u64>().ok(),
+                "MIN_FILE_SIZE" => configs.scan.min_file_size = scan_val.parse::<u64>().ok(),
+                _               => ()
+            }
+        }
+
     }
 
     Ok(configs)
@@ -290,7 +344,8 @@ struct TomlConfigs {
     api: Option<ApiConfigs>,
     csv: Option<CSVConfigs>,
     proxy: Option<ProxyConfigs>,
-    digests: Option<DigestConfigs>
+    digests: Option<DigestConfigs>,
+    scan: Option<ScanConfigs>
 }
 
 impl TomlConfigs {
@@ -314,6 +369,10 @@ impl TomlConfigs {
 
         if let Some(toml_digests) = self.digests.clone() {
             confs.digests = toml_digests.into_digest_ext_table();
+        }
+
+        if let Some(toml_scan) = self.scan.clone() {
+            confs.scan = toml_scan;
         }
 
         confs.clone()

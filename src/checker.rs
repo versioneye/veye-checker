@@ -46,7 +46,9 @@ pub fn digest_md5(filepath: &Path) -> Result<String, Error> {
 
 // founds the right encoder based matching columns in DigestExtTable
 // returns None when filetype is unsupported, otherwise list of all matched algos
-pub fn digest_file(ext_table: &DigestExtTable, filepath: &Path) -> Option<Vec<ProductSHA>> {
+pub fn digest_file(
+    ext_table: &DigestExtTable, filepath: &Path
+) -> Option<Vec<ProductSHA>> {
     if filepath.is_dir(){ return None; }
 
     let opt_ext = filepath.extension();
