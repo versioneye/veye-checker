@@ -210,7 +210,7 @@ fn add_matches_into_ext_table (
         ext_table.add_many(digest_ext_table::DigestAlgo::Md5, exts);
     }
 
-    if let Some(ext_txt) = matches.opt_str("ext-sha512") {
+    if let Some(ext_txt) = matches.opt_str("ext-sha1") {
         let exts: Vec<String> = ext_txt.split(',').map(|s| s.to_string() ).collect();
 
         ext_table.clear(digest_ext_table::DigestAlgo::Sha1);
