@@ -9,7 +9,9 @@ use veye_checker::{tasks, product, configs, digest_ext_table};
 fn test_task_start_path_scanner(){
     let test_dir = PathBuf::from("test/fixtures/files");
     let ext_table = digest_ext_table::DigestExtTable::default();
-    let (sha_ch, h1) = tasks::start_path_scanner(ext_table, test_dir);
+    let scan_configs = configs::ScanConfigs::default();
+
+    let (sha_ch, h1) = tasks::start_path_scanner(ext_table, test_dir, scan_configs);
 
     for sha in sha_ch.into_iter() {
         assert_eq!(true, sha.value.len() > 0);
@@ -25,12 +27,35 @@ fn test_task_start_path_scanner_folder_dont_exist(){
     let test_dir = PathBuf::from("test/fixtures/dont_exists");
     assert_eq!(false, test_dir.exists());
 
+    let scan_configs = configs::ScanConfigs::default();
     let ext_table = digest_ext_table::DigestExtTable::default();
-    let (_, h1) = tasks::start_path_scanner(ext_table, test_dir);
+    let (_, h1) = tasks::start_path_scanner(ext_table, test_dir, scan_configs);
 
     let res = h1.join().unwrap();
     assert_eq!(true, res.is_err())
 
+}
+
+#[test]
+fn test_task_start_path_scanner_limit_file_size(){
+    let test_dir = PathBuf::from("test/fixtures/files");
+    let ext_table = digest_ext_table::DigestExtTable::default();
+    let scan_configs = configs::ScanConfigs {
+        max_file_size: Some(10000),
+        min_file_size: Some(5000)
+    };
+
+    let (sha_ch, h1) = tasks::start_path_scanner(ext_table, test_dir, scan_configs);
+
+    let mut n = 1;
+    for sha in sha_ch.into_iter() {
+        assert_eq!(1, n); //only one item can be on stream
+        assert_eq!(true, sha.value.len() > 0);
+        assert_eq!(true, sha.filepath.is_some());
+        n += 1;
+    }
+
+    h1.join().unwrap();
 }
 
 #[test]

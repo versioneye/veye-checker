@@ -2,7 +2,7 @@ extern crate csv;
 
 use std::fs;
 use std::vec;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::thread;
 use std::sync::mpsc::{channel, Receiver};
 use std::io::{self, ErrorKind};
@@ -17,8 +17,24 @@ use api;
 use checker;
 use digest_ext_table::DigestExtTable;
 
-pub fn start_path_scanner(ext_table: DigestExtTable, dir: PathBuf)
-    -> (Receiver<ProductSHA>, thread::JoinHandle<Result<(), io::Error>> ) {
+fn check_file_size(path: &Path, scan_configs: &configs::ScanConfigs) -> bool {
+    if path.is_dir() { return false }
+
+    let min_size = scan_configs.min_file_size.unwrap_or(0);
+    let max_size = scan_configs.max_file_size.unwrap_or(configs::DEFAULT_MAX_SIZE);
+
+    if let Some(metadata)  = fs::metadata(path).ok() {
+        (min_size < metadata.len() ) && ( metadata.len() <= max_size )
+    } else {
+        // we failed to get read metadata, which means file doesnt exists, unreadable etc
+        false
+    }
+}
+
+
+pub fn start_path_scanner(
+    ext_table: DigestExtTable, dir: PathBuf, scan_configs: configs::ScanConfigs
+) -> (Receiver<ProductSHA>, thread::JoinHandle<Result<(), io::Error>> ) {
 
     let (sender, receiver) = channel::<ProductSHA>();
     let handle = thread::spawn(move || {
@@ -29,6 +45,12 @@ pub fn start_path_scanner(ext_table: DigestExtTable, dir: PathBuf)
         }
 
         for entry in WalkDir::new(&dir).into_iter().filter_map(|e| e.ok()){
+
+            //skip files which are either too small or too big
+            if !check_file_size(&entry.path(), &scan_configs){
+                println!("path_scanner: skipping {:?}", &entry.path() );
+                continue
+            }
 
             if let Some(shas) = checker::digest_file(&ext_table, &entry.path()) {
                 for sha in shas.into_iter(){
