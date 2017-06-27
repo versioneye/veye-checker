@@ -1,6 +1,6 @@
 # Veye-Checker
 
-
+[![Dependency Status](https://www.versioneye.com/user/projects/5912d506e1638f0051a0a33b/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/5912d506e1638f0051a0a33b)
 [![Join the chat at Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/veye_checker/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
 
 It's a command-line util that scans packaged binaries and resolves their SHA digest values into the package information.
@@ -33,6 +33,9 @@ chmod a+x ~/bin/veye_checker
 veye_checker resolve ../jars -a "api-key" -c "confs/veye_checker_local.toml"
 VERSIONEYE_API_KEY="apitoken" veye_checker resolve ../jars
 veye_checker resolve ../jars -o resolve.csv -a "api-key"
+
+# only resolve binaries which are bigger than 5Kb, but smaller than 10Kb
+veye_checker resolve tests/fixtures/files/ --max-file-size=10000 --min-file-size=5000
 ```
 
 configure which digest algorithms to use
@@ -51,6 +54,9 @@ veye_checker resolve ../jars -a "api-key" --no-md5 --ext-sha1="whl,jar,tgz"
 veye_checker shas ../jars/ 
 veye_checker shas ../jars/ -o results.csv
 VERSIONEYE_CSV_SEPARATOR="," veye_checker shas temp/bins/
+
+# only generate diggest values for files which size in the range (5Kb, 10Kb)
+veye_checker shas tests/fixtures/files/ --max-file-size=10000 --min-file-size=5000
 ```
 
 It is possible to configure which digest algorithms to use.

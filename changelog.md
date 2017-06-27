@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [unreleased] v0.2.0 - 2017-06-2x
 ### Added 
 
+ - issue #19 - add options to change the range of file size for digestable files; 
  - issue #18 - possible to block digest algorithms and specify file extensions;
  - add new cmd-line options: `no-md5, no-sha1, no-sha512, ext-md5, ext-sha1, ext-sha512`
  
