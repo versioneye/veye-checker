@@ -21,7 +21,7 @@ Cargo.lock
 ### test data
 
 results.csv
-/temp/*
+temp/*
 
 ### vagrant files
 

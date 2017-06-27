@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt;
 
 #[derive(Hash, Eq, PartialEq, Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum DigestAlgo {
@@ -7,7 +8,7 @@ pub enum DigestAlgo {
     Sha512   //nuget: Sha512 finalized with Base64
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DigestExtTable {
     md5: HashSet<String>,
     sha1: HashSet<String>,
@@ -61,6 +62,7 @@ impl DigestExtTable {
     }
 
     pub fn add_many(&mut self, algo: DigestAlgo, file_exts: Vec<String>) {
+
         for ext in &file_exts {
             self.add(algo, ext.to_string());
         }
@@ -103,3 +105,40 @@ impl Default for DigestExtTable {
     }
 }
 
+impl fmt::Debug for DigestExtTable {
+    fn fmt(&self, f: &mut fmt::Formatter) ->fmt::Result {
+        let mut blocked_algos = vec![];
+        let mut file_exts = vec![];
+
+        if self.is_blocked(DigestAlgo::Md5){
+            blocked_algos.push("md5");
+        } else {
+            let exts = format!("md5: {:?}", self.md5);
+            file_exts.push(exts);
+        }
+
+        if self.is_blocked(DigestAlgo::Sha1){
+            blocked_algos.push("sha1");
+        } else {
+            let exts = format!("sha1: {:?}", self.sha1);
+            file_exts.push(exts);
+        }
+
+        if self.is_blocked(DigestAlgo::Sha512){
+            blocked_algos.push("sha512");
+        } else {
+            let exts = format!("sha512: {:?}", self.sha512);
+            file_exts.push(exts);
+        }
+
+        if !blocked_algos.is_empty() {
+            writeln!(f, "blocked algos: {}", blocked_algos.join(", "));
+        }
+
+        if !file_exts.is_empty() {
+            writeln!(f, "File extensions:\n {}", file_exts.join("\n"));
+        }
+
+        write!(f, "\n")
+    }
+}

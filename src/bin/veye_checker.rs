@@ -25,11 +25,20 @@ fn main() {
     let program_name = args[0].clone();
     let mut opts = Options::new();
 
-    //register options flags
+    // register options flags
     opts.optopt("o", "output", "specifies the name of output file", "FILENAME");
     opts.optopt("a", "auth", "specifies the api-key for API calls", "API_TOKEN");
     opts.optopt("c", "config", "specifies the filepath to lookup configfile", "FILEPATH");
     opts.optflag("h", "help", "shows usage help");
+
+    // options for algo settings
+    opts.optflag("", "no-md5", "dont use MD5");
+    opts.optflag("", "no-sha1", "dont use SHA1");
+    opts.optflag("", "no-sha512", "don use SHA512");
+
+    opts.optopt("", "ext-md5", "list of file extensions to use for MD5", "CSV_OF_EXTs");
+    opts.optopt("", "ext-sha1", "list of file extensions to use for SHA1", "CSV_OF_EXTs");
+    opts.optopt("", "ext-sha512", "list of file extenstions to use for SHA512", "CSV_OF_EXTS");
 
     //parse command-line arguments
     let matches = match opts.parse(&args[1..]){
@@ -66,6 +75,7 @@ fn do_resolve_task(matches: &getopts::Matches) -> Result<bool, String> {
     } else {
         matches.free[1].clone()
     };
+
     let mut global_configs = configs::read_configs(matches.opt_str("c"));
 
     //override global configs when use attached commandline key
@@ -80,7 +90,10 @@ fn do_resolve_task(matches: &getopts::Matches) -> Result<bool, String> {
     };
 
     // execute command pipeline
-    let ext_table = digest_ext_table::DigestExtTable::default();
+    let mut ext_table = digest_ext_table::DigestExtTable::default();
+    add_matches_into_ext_table(&mut ext_table, matches);
+    println!("Digest configuration:\n {:?}", &ext_table);
+
     let dir = PathBuf::from(&dir_txt);
     let (sha_ch, h1) = tasks::start_path_scanner(ext_table, dir);
     let (product_ch, h2) = tasks::start_sha_fetcher(global_configs.clone(), sha_ch);
@@ -111,9 +124,11 @@ fn do_shas_task(matches: &getopts::Matches) -> Result<bool, String> {
         matches.free[1].clone()
     };
 
+    let mut ext_table = digest_ext_table::DigestExtTable::default();
+    add_matches_into_ext_table(&mut ext_table, matches);
+    println!("Digest configuration:\n {:?}", &ext_table);
 
     let dir = PathBuf::from(&dir_txt);
-    let ext_table = digest_ext_table::DigestExtTable::default();
     let (sha_ch, h1) = tasks::start_path_scanner(ext_table, dir);
     let h2 = match matches.opt_str("o") {
         Some(outfile_path) => {
@@ -168,6 +183,46 @@ fn do_lookup_task(matches: &getopts::Matches) -> Result<bool, String> {
     h3.join().expect("lookup: failed to output product details").unwrap();
 
     Ok(true)
+}
+
+fn add_matches_into_ext_table (
+    ext_table: &mut digest_ext_table::DigestExtTable, matches: &getopts::Matches
+){
+    // block algorithms when user attached no flags
+    if matches.opt_present("no-md5") {
+        ext_table.block(digest_ext_table::DigestAlgo::Md5);
+    }
+
+    if matches.opt_present("no-sha1") {
+        ext_table.block(digest_ext_table::DigestAlgo::Sha1);
+    }
+
+    if matches.opt_present("no-sha512") {
+        ext_table.block(digest_ext_table::DigestAlgo::Sha512);
+    }
+
+    // overwrite file extensions
+    if let Some(ext_txt) = matches.opt_str("ext-md5") {
+        let exts: Vec<String> = ext_txt.split(',').map(|s| s.to_string() ).collect();
+
+        println!("using MD5 extensions: {:?}", exts.clone() );
+        ext_table.clear(digest_ext_table::DigestAlgo::Md5);
+        ext_table.add_many(digest_ext_table::DigestAlgo::Md5, exts);
+    }
+
+    if let Some(ext_txt) = matches.opt_str("ext-sha1") {
+        let exts: Vec<String> = ext_txt.split(',').map(|s| s.to_string() ).collect();
+
+        ext_table.clear(digest_ext_table::DigestAlgo::Sha1);
+        ext_table.add_many(digest_ext_table::DigestAlgo::Sha1, exts);
+    }
+
+    if let Some(ext_txt) = matches.opt_str("ext-sha512") {
+        let exts: Vec<String> = ext_txt.split(',').map(|s| s.to_string() ).collect();
+
+        ext_table.clear(digest_ext_table::DigestAlgo::Sha512);
+        ext_table.add_many(digest_ext_table::DigestAlgo::Sha512, exts);
+    }
 }
 
 

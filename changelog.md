@@ -4,7 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased] - 2017-04-xx
+## [unreleased] v0.2.0 - 2017-06-2x
+### Added 
+
+ - issue #18 - possible to block digest algorithms and specify file extensions;
+ - add new cmd-line options: `no-md5, no-sha1, no-sha512, ext-md5, ext-sha1, ext-sha512`
+ 
+### Fixed
+ 
+ - issue #13 - handle cases when 2 or more shas are returned from API;
+ - issue #20 - config file requires all the top-level categories specified;
+ - issue #17 - product URL was using host of SAAS, not from configs;
+
+## v0.1.0 - 2017-04-24
 ### Added
 
 - add `-c` flag to override default location of configuration file
