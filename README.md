@@ -3,36 +3,47 @@
 
 [![Join the chat at Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/veye_checker/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
 
-It's a command-line util that scans packaged binaries  and resolves their SHA digest values into the package information.
+It's a command-line util that scans packaged binaries and resolves their SHA digest values into the package information.
 The whole idea behind this utility is described in the Versioneye's blogpost ["Identifying components by SHA values"](https://blog.versioneye.com/2017/02/08/identifying-components-by-sha-values).
 
-One can use this utility to lookup package version details, license, vulnerability details or automate due diligence process without installing any runtime or additional dependencies.
+One can use this utility to lookup a version details of the package, fetch a license ID for the binary or 
+get vulnerability details or automate due diligence process without installing any runtime or additional dependencies.
 
-Supported packages:
+Default file extensions for package managers:
 
-* Nuget - *\*.nupkg*
-* Maven - *\*.jar*
-* PYPI - *\*.tar.gz, \*.whl*
-* NPM  - *\*.tgz*
+* Nuget (SHA512) - *\*.nupkg*
+* Maven (SHA1)   - *\*.jar*
+* PYPI  (MD5)    - *\*.tar.gz, \*.whl*
+* NPM   (SHA1)   - *\*.tgz*
 
 ## Usage
 
 Download binaries from the [releases](https://github.com/versioneye/veye-checker/releases) and save it into your binaries folder
 
-```
+```bash
 #NB! change version and op-sys
-curl -s -L -o "${HOME}/bin/veye_checker" https://github.com/versioneye/veye-checker/releases/download/v0.1.0/veye_checker_osx
+curl -s -L -o "${HOME}/bin/veye_checker" https://github.com/versioneye/veye-checker/releases/download/v0.2.0/veye_checker_osx
 
 chmod a+x ~/bin/veye_checker
 ```
 
 * **resolve** - scans the target folder recursively, translates a value of a file digest via VersionEye API into the product details and prints out results.
 
-```
+```bash
 veye_checker resolve ../jars -a "api-key" -c "confs/veye_checker_local.toml"
 VERSIONEYE_API_KEY="apitoken" veye_checker resolve ../jars
 veye_checker resolve ../jars -o resolve.csv -a "api-key"
 ```
+
+configure which digest algorithms to use
+commandline flags for blocking algos: `no-md5, no-sha1, no-sha512`
+commandline options to overwrite list of file-extensions of a digest algos: `ext-md5, ext-sha1, ext-sha512`
+
+```bash
+veye_checker resolve ../jars -a "api-key" --no-md5 --ext-sha1="whl,jar,tgz"
+```
+
+
 
 * **shas** - scans the target folder recursively and outputs digests of supported packagefiles:
 
@@ -41,6 +52,17 @@ veye_checker shas ../jars/
 veye_checker shas ../jars/ -o results.csv
 VERSIONEYE_CSV_SEPARATOR="," veye_checker shas temp/bins/
 ```
+
+It is possible to configure which digest algorithms to use.
+commandline flags for blocking algos: `no-md5, no-sha1, no-sha512`
+commandline options to overwrite list of file-extensions of a digest algos: `ext-md5, ext-sha1, ext-sha512`
+
+```bash
+# dont use MD5 for next scan and update file extensions to use for SHA1
+veye_checker shas ../jars -a "api-key" --no-md5 --ext-sha1="whl,jar,tgz"
+```
+
+
 
 * **lookup** - fetches product details from VersionEye api by the SHA/digest value.
 
@@ -95,11 +117,13 @@ It's possible to tweak a setting of the command-line tool with environmental var
 | VERSIONEYE\_PROXY\_PORT| None         | specifies proxy port |
 | VERSIONEYE\_PROXY\_SCHEME| http       | specifies proxy scheme |
 
+NB! Use cmd-line flags or config-file to configure file extensions used by a digest algo;
+
 ## Configuration via config file
 
-One can also put permanent configurations for the `veye_checker` tool into a `veye_checker.toml` file.
+One can also put all the permanent configurations for the `veye_checker` tool into a `veye_checker.toml` file.
 By default the tool will lookup configuration file in the working directory, but you can always specify
-location with the `-c` flag after command.
+location with the `-c` flag or `--config` option after the subcommand.
 
 All the fields in the configuration file are optional, and the commandline tool will use default values for unspecified fields.
 
@@ -122,28 +146,35 @@ host = "127.0.0.1"
 port = 3128
 scheme = "http"
 
-```
+# configure file extensions
+[digests.md5]
+blocked = false
+exts = ["whl", "gz"]
 
-ps: if you have problem using the configuration file, then make sure that the file includes rows `[api], [csv], [proxy]`
+# Dont use SHA1
+[digests.sha1]
+blocked = true
+
+```
 
 ## Build
 
 ```bash
-> cargo build
-> ./target/debug/veye_checker
+cargo build
+./target/debug/veye_checker
 
-or simpler command
-> cargo run
+# or simpler command
+cargo run
 
-or running tests
-> cargo test
+# or running tests
+cargo test -- --test-threads=1
 
-#test only api-calls 
-> VERSIONEYE_API_KEY="APIKEY" cargo test --features "api"
+# test only api-calls 
+VERSIONEYE_API_KEY="APIKEY" cargo test --features "api"
 
-or optimized production release
-> cargo build --release
-> ./target/release/veye-checker
+# or optimized production release
+cargo build --release
+./target/release/veye-checker
 
 ```
 
@@ -155,6 +186,8 @@ or optimized production release
 cargo test -- --test-threads=1
 ```
 
+`--test-threads=1` is required for tests that are checking does reading configuration from ENV variables work;
+
 * to run integration test against API configs
 
 ```bash
@@ -165,32 +198,51 @@ VERSIONEYE_API_KEY="your_api_key" cargo test --features="api"
 
  1. start squid proxy
  
-    ```bash
-    docker pull sameersbn/squid:latest
-    
-    docker run --name squid -d --restart=always \
-      --publish 3128:3128 \
-      --volume /veye-checker/temp/cache:/var/spool/squid3 \
-      sameersbn/squid:latest
-      
-    docker stop|run squid
-    ```
+```bash
+docker pull sameersbn/squid:latest
+
+docker run --name squid -d --restart=always \
+  --publish 3128:3128 \
+  --volume /veye-checker/temp/cache:/var/spool/squid3 \
+  sameersbn/squid:latest
+  
+docker stop|run squid
+```
 
  2. run tests
  
-    ```bash
-        cargo test test_proxy --features=proxy
-    ```
+```bash
+    cargo test test_proxy --features=proxy
+```
+
+
 * to run acceptance tests
 
 ```bash
 cd tests/acceptance
-VERSIONEYE_API_KEY="your_api_key" ./run.sh 
+
+# on *nix machines
+VERSIONEYE_API_KEY="your_api_key" ./tests.sh 
+
+# on Macs
+VERSIONEYE_API_KEY="your_api_key" ./tests_osx.sh
 ```
 
 
 ## Contributing
 
 It's opensource project and any kind of contribution is more than welcome. 
+
+Here's simple guideline to preferable workflow:
+
+* open a issue
+* implement after it lands into milestones
+* write tests
+* update docs
+* make PR
+* review
+
+and your changes makes into next release
+
 
 

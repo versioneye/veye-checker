@@ -92,7 +92,7 @@ fn do_resolve_task(matches: &getopts::Matches) -> Result<bool, String> {
     // execute command pipeline
     let mut ext_table = digest_ext_table::DigestExtTable::default();
     add_matches_into_ext_table(&mut ext_table, matches);
-    println!("The configuration of digests:\n{:?}", &ext_table );
+    println!("Digest configuration:\n {:?}", &ext_table);
 
     let dir = PathBuf::from(&dir_txt);
     let (sha_ch, h1) = tasks::start_path_scanner(ext_table, dir);
