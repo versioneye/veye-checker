@@ -5,7 +5,7 @@ authors = ["timgluz <sulg@versioneye.com>", "reiz@versioneye.com"]
 
 [dependencies]
 sha1            = "^0.2.0"
-sha2            = "^0.4.2"
+sha2            = "^0.6"
 base64          = "^0.3.0"
 md5             = "^0.3"
 getopts         = "^0.2"
