@@ -3,13 +3,13 @@ use sha2::{Sha512, Digest};
 use base64;
 use md5;
 
-use std::io::{self, Error, ErrorKind};
+use std::io::Error;
 use std::io::prelude::*;
 use std::path::Path;
 use std::fs::File;
 
 use product::ProductSHA;
-use digest_ext_table::{DigestAlgo, DigestExtTable};
+use digest_ext_table::DigestExtTable;
 
 
 pub fn digest_sha1(filepath: &Path) -> Result<String, Error> {
@@ -55,7 +55,6 @@ pub fn digest_file(
     if opt_ext.is_none() { return None; } //when hidden file or file has no extensions
 
     let file_ext  = opt_ext.unwrap().to_str().unwrap_or("");
-    let filepath_ = filepath.clone();//keep copy for debugging purpose
     let path_txt  = filepath.to_str().unwrap_or("").to_string();
     let mut shas: Vec<ProductSHA> = Vec::new();
 

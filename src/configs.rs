@@ -5,7 +5,6 @@ use std::io::{Read, Error, ErrorKind};
 use std::path::PathBuf;
 use std::fs::File;
 use toml;
-use serde::{Serialize, Deserialize};
 
 use digest_ext_table::{DigestAlgo, DigestExtTable};
 

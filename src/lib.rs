@@ -11,7 +11,6 @@ extern crate regex;
 extern crate toml;
 extern crate walkdir;
 
-#[macro_use]
 extern crate serde_json;
 
 #[macro_use]

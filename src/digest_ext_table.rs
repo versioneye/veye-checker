@@ -38,8 +38,7 @@ impl DigestExtTable {
         match algo {
             DigestAlgo::Md5     => self.md5.insert(file_ext),
             DigestAlgo::Sha1    => self.sha1.insert(file_ext),
-            DigestAlgo::Sha512  => self.sha512.insert(file_ext),
-            _                   => false
+            DigestAlgo::Sha512  => self.sha512.insert(file_ext)
         }
     }
 
@@ -56,8 +55,7 @@ impl DigestExtTable {
             DigestAlgo::Sha512 => {
                 self.sha512.clear();
                 self.sha512.is_empty()
-            },
-            _ => false
+            }
         }
     }
 
@@ -132,11 +130,11 @@ impl fmt::Debug for DigestExtTable {
         }
 
         if !blocked_algos.is_empty() {
-            writeln!(f, "blocked algos: {}", blocked_algos.join(", "));
+            writeln!(f, "blocked algos: {}", blocked_algos.join(", ")).unwrap();
         }
 
         if !file_exts.is_empty() {
-            writeln!(f, "File extensions:\n {}", file_exts.join("\n"));
+            writeln!(f, "File extensions:\n {}", file_exts.join("\n")).unwrap();
         }
 
         write!(f, "\n")

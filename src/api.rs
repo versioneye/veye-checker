@@ -7,7 +7,6 @@ use hyper::net::HttpsConnector;
 use hyper_native_tls::NativeTlsClient;
 
 use std::time::Duration;
-use serde::{Serialize, Deserialize};
 use serde_json;
 use product;
 use configs::{Configs, ApiConfigs, ProxyConfigs};
@@ -217,8 +216,6 @@ struct ShaItem {
     packaging: Option<String>
 }
 
-type ShaItems = Vec<ShaItem>;
-
 //-- helper functions
 pub fn process_sha_response(json_text: Option<String> ) -> Result<product::ProductMatch, io::Error> {
     if json_text.is_none() {
@@ -244,7 +241,7 @@ pub fn process_sha_response(json_text: Option<String> ) -> Result<product::Produ
         return Err(e);
     }
 
-    let mut shas = res.as_array().unwrap();
+    let shas = res.as_array().unwrap();
     if shas.len() == 0 {
         let e = Error::new( ErrorKind::Other, "No match for the SHA");
         return Err(e);
