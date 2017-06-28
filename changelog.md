@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Updated
 
 - updated `sha2` from `0.4.2` to `0.6.0`
+- updated `base64` from `0.3.1` to `0.6.0`
+
 
 ## v0.1.0 - 2017-04-24
 ### Added
