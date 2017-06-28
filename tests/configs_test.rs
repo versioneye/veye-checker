@@ -3,7 +3,7 @@ extern crate veye_checker;
 use std::env;
 use std::path::PathBuf;
 use veye_checker::configs;
-use veye_checker::digest_ext_table::{DigestAlgo, DigestExtTable};
+use veye_checker::digest_ext_table::DigestAlgo;
 
 #[test]
 fn test_configs_read_api_configs_from_env(){

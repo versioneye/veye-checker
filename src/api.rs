@@ -1,19 +1,141 @@
 use std::str;
-use std::io::{self, Read, Write, Error, ErrorKind};
-use std::borrow::Cow;
+use std::io::{self, Error, ErrorKind};
+use std::cell::RefCell;
 
 use futures::{Future, Stream};
 use hyper;
-use hyper::{client, Client, Uri };
+use hyper::{Client, Uri };
 use hyper_tls::HttpsConnector;
 use tokio_core::reactor;
 
-use std::time::Duration;
+//use std::time::Duration;
 use serde_json;
 use product;
-use configs::{Configs, ApiConfigs, ProxyConfigs};
+use configs::{ApiConfigs, ProxyConfigs};
 
 const HOST_URL: &'static str = "https://www.versioneye.com";
+const NUM_THREADS: usize = 4;
+
+pub struct VeyeClient {
+    api: ApiConfigs,
+    proxy: Option<ProxyConfigs>,
+    wpool: RefCell<reactor::Core> //allows mutable derefs
+}
+
+impl VeyeClient {
+    pub fn new(api_configs: &ApiConfigs) -> VeyeClient {
+        let mut reactor = reactor::Core::new().expect("Failed to start workpool");
+
+        VeyeClient {
+            api: api_configs.clone(),
+            proxy: None,
+            wpool: RefCell::new(reactor)
+        }
+    }
+
+    // pull textual content from the url
+    fn fetch_content(&self, uri: &Uri) -> Option<String> {
+        let mut reactor = self.wpool.borrow_mut();
+        let client = build_ssl_client( &mut reactor );
+
+        let req = client.get(uri.clone()).and_then(|res| { res.body().concat2() });
+
+        let res = reactor.run(req).expect("Failed to run request");
+        if let Some(content) = str::from_utf8(&res).ok(){
+            Some(content.to_string())
+        } else {
+            None
+        }
+
+    }
+}
+
+pub fn fetch_product_details_by_sha(
+    client: &VeyeClient, file_sha: &str
+) -> Result<product::ProductMatch, Error> {
+
+    let sha_res = fetch_product_by_sha(client, file_sha);
+    match sha_res {
+        Ok(m) => {
+            let sha = m.sha.expect("No product sha from SHA result");
+            let product = m.product.expect("No product info from SHA result");
+            match fetch_product( client, &product.language, &product.prod_key, &product.version ) {
+                Ok(mut m) => {
+                    m.sha = Some(sha);
+                    Ok(m)
+                },
+                Err(e) => {
+                    println!("Failed to fetch product details for sha: {}", file_sha);
+                    Err(e)
+                }
+            }
+
+        },
+        Err(e) => Err(e)
+    }
+}
+
+pub fn fetch_product<'z>(
+    client : &VeyeClient,  lang: &str, prod_key: &str, version: &str
+) -> Result<product::ProductMatch, io::Error> {
+
+    let api_confs = client.api.clone();
+    let encoded_prod_key = encode_prod_key(&prod_key);
+    let encoded_lang = encode_language(lang);
+    let resource_path = format!(
+        "products/{}/{}?prod_version={}&api_key={}",
+        encoded_lang.clone(), encoded_prod_key.clone(), version, api_confs.key.clone().unwrap().as_str()
+    );
+
+    let prod_url = to_product_url(
+        &api_confs,
+        encoded_lang.clone().as_str(),
+        prod_key,
+        version
+    );
+
+    let resource_url = match configs_to_url(&api_confs, resource_path.as_str()) {
+        Ok(the_url) => the_url,
+        Err(_)      => {
+            return Err(
+                Error::new(
+                    ErrorKind::InvalidData,
+                    "The values of API configs make up non-valid URL"
+                )
+            )
+        }
+    };
+
+    let json_txt = client.fetch_content( &resource_url );
+    process_product_response(json_txt, Some(prod_url))
+}
+
+
+
+pub fn fetch_product_by_sha<'z>(
+    client: &VeyeClient, sha: &str
+) -> Result<product::ProductMatch, io::Error> {
+    let api_confs = client.api.clone();
+    let resource_path = format!(
+        "products/sha/{}?api_key={}",
+        encode_sha(sha), api_confs.key.clone().unwrap().as_str()
+    );
+
+    let resource_url = match configs_to_url(&api_confs, resource_path.as_str()) {
+        Ok(the_url) => the_url,
+        Err(_)      => {
+            return Err(
+                Error::new(
+                    ErrorKind::InvalidData,
+                    "The values of API configs make up non-valid URL"
+                )
+            )
+        }
+    };
+
+    let json_txt = client.fetch_content( &resource_url );
+    process_sha_response(json_txt)
+}
 
 //it is used to build url to the product page (SAAS or Enterprise)
 pub fn to_product_url(api_confs: &ApiConfigs, lang: &str, prod_key: &str, version: &str) -> String {
@@ -58,78 +180,15 @@ fn configs_to_url(api_confs: &ApiConfigs, resource_path: &str)
 
 fn build_ssl_client(wpool: &mut reactor::Core) -> hyper::Client<HttpsConnector<hyper::client::HttpConnector>> {
     let handle = wpool.handle();
-    let ssl_connector = HttpsConnector::new(4, &handle).expect("Failed to init SSL connector");
+    let ssl_connector = HttpsConnector::new(NUM_THREADS, &handle).expect("Failed to init SSL connector");
 
     let client = Client::configure()
-                    .connector(ssl_connector) //4threads?
+                    .connector(ssl_connector)
                     .build( &handle );
 
     client
 }
 
-fn request_json<'a>(
-    uri: &Uri,  proxy_confs: &'a ProxyConfigs, wpool: &mut reactor::Core
-) -> Option<String> {
-    let client = build_ssl_client( wpool );
-
-    let req = client.get(uri.clone()).and_then(|res| { res.body().concat2() });
-
-    let res = wpool.run(req).expect("Failed to run request");
-    if let Some(content) = str::from_utf8(&res).ok(){
-        Some(content.to_string())
-    } else {
-        None
-    }
-
-}
-
-pub fn fetch_product_details_by_sha(confs: &Configs, file_sha: &str)
-    -> Result<product::ProductMatch, Error> {
-
-    let sha_res = fetch_product_by_sha(&confs, file_sha);
-    match sha_res {
-        Ok(m) => {
-            let sha = m.sha.expect("No product sha from SHA result");
-            let product = m.product.expect("No product info from SHA result");
-            match fetch_product( &confs, &product.language, &product.prod_key, &product.version ) {
-                Ok(mut m) => {
-                    m.sha = Some(sha);
-                    Ok(m)
-                },
-                Err(e) => {
-                    println!("Failed to fetch product details for sha: {}", file_sha);
-                    Err(e)
-                }
-            }
-
-        },
-        Err(e) => Err(e)
-    }
-}
-
-pub fn fetch_product_by_sha<'z>(confs: &Configs, sha: &str)
-    -> Result<product::ProductMatch, io::Error> {
-    let api_confs = confs.api.clone();
-    let resource_path = format!(
-        "products/sha/{}?api_key={}",
-        encode_sha(sha), api_confs.key.clone().unwrap().as_str()
-    );
-    let mut resource_url = match configs_to_url(&api_confs, resource_path.as_str()) {
-        Ok(the_url) => the_url,
-        Err(_)      => {
-            return Err(
-                Error::new(
-                    ErrorKind::InvalidData,
-                    "The values of API configs make up non-valid URL"
-                )
-            )
-        }
-    };
-
-    let mut wpool = reactor::Core::new()?;
-    let json_txt = request_json( &resource_url, &confs.proxy, &mut wpool );
-    process_sha_response(json_txt)
-}
 
 //replaces base64 special characters with HTML safe percentage encoding
 //source: https://en.wikipedia.org/wiki/Base64#URL_applications
@@ -156,41 +215,7 @@ pub fn encode_language<'b>(lang: &'b str) -> String {
     encoded_lang.replace(".", "").trim().to_lowercase().to_string()
 }
 
-pub fn fetch_product<'z>(
-    confs: &Configs, lang: &str, prod_key: &str, version: &str
-) -> Result<product::ProductMatch, io::Error> {
 
-    let api_confs = confs.api.clone();
-    let encoded_prod_key = encode_prod_key(&prod_key);
-    let encoded_lang = encode_language(lang);
-    let resource_path = format!(
-        "products/{}/{}?prod_version={}&api_key={}",
-        encoded_lang.clone(), encoded_prod_key.clone(), version, api_confs.key.clone().unwrap().as_str()
-    );
-
-    let prod_url = to_product_url(
-        &confs.api,
-        encoded_lang.clone().as_str(),
-        prod_key,
-        version
-    );
-
-    let mut resource_url = match configs_to_url(&api_confs, resource_path.as_str()) {
-        Ok(the_url) => the_url,
-        Err(_)      => {
-            return Err(
-                Error::new(
-                    ErrorKind::InvalidData,
-                    "The values of API configs make up non-valid URL"
-                )
-            )
-        }
-    };
-
-    let mut wpool = reactor::Core::new()?;
-    let json_txt = request_json( &resource_url, &confs.proxy, &mut wpool );
-    process_product_response(json_txt, Some(prod_url))
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ApiError {

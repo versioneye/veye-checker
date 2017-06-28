@@ -1,7 +1,6 @@
 extern crate hyper;
 extern crate veye_checker;
 
-use std::env;
 use std::error::Error;
 use veye_checker::{api, configs};
 
@@ -55,8 +54,8 @@ fn test_api_call_fetch_product_by_sha(){
 
     let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
     let confs = configs::read_configs(None);
-
-    let res = api::fetch_product_by_sha(&confs, file_sha).expect("Failed fetch SHA");
+    let client = api::VeyeClient::new(&confs.api);
+    let res = api::fetch_product_by_sha(&client, file_sha).expect("Failed fetch SHA");
 
     let prod_url = "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
     assert_eq!(Some(prod_url), res.url);
@@ -83,8 +82,8 @@ fn test_api_call_fetch_product_by_sha_nuget_special_symbols(){
 
     let file_sha = "/uVunD0tcI2UQCzFp0g46+CjSF2ElQ/Bc9tWw8FS4f0iIK728XCjY8stn3+s78tiz8x2EUGwAnaOVfQJB6hI5g==";
     let confs = configs::read_configs(None);
-
-    let res = api::fetch_product_by_sha(&confs, file_sha).expect("Failed fetch SHA");
+    let client = api::VeyeClient::new(&confs.api);
+    let res = api::fetch_product_by_sha(&client, file_sha).expect("Failed fetch SHA");
 
     let prod_url = "https://www.versioneye.com/CSharp/RavenDB.Client".to_string();
     assert_eq!(Some(prod_url), res.url);
@@ -116,7 +115,8 @@ fn test_proxy_call_fetch_product_by_sha(){
     let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
     let confs = configs::read_configs(None);
 
-    let res = api::fetch_product_by_sha(&confs, file_sha).expect("Failed fetch SHA");
+    let client = api::VeyeClient::new(&confs.api);
+    let res = api::fetch_product_by_sha(&client, file_sha).expect("Failed fetch SHA");
 
     let prod_url = "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
     assert_eq!(Some(prod_url), res.url);
@@ -146,8 +146,9 @@ fn test_proxy_call_fetch_product_by_sha(){
 #[cfg(feature="api")]
 fn test_api_call_fetch_product(){
     let confs = configs::read_configs(None);
+    let client = api::VeyeClient::new(&confs.api);
     let res = api::fetch_product(
-        &confs, "Java", "commons-beanutils/commons-beanutils", "1.7.0"
+        &client, "Java", "commons-beanutils/commons-beanutils", "1.7.0"
     ).expect("Failed to fetch product details");
 
     assert_eq!(false, res.sha.is_some());
@@ -169,8 +170,9 @@ fn test_proxy_call_fetch_product(){
     env::set_var("VERSIONEYE_PROXY_SCHEME", "http");
 
     let confs = configs::read_configs(None);
+    let client = api::VeyeClient::new(&confs.api);
     let res = api::fetch_product(
-        &confs, "Java", "commons-beanutils/commons-beanutils", "1.7.0"
+       &client, "Java", "commons-beanutils/commons-beanutils", "1.7.0"
     ).expect("Failed to fetch product details");
 
     assert_eq!(false, res.sha.is_some());
@@ -196,7 +198,8 @@ fn test_api_call_fetch_product_details_by_sha(){
     let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
     let confs = configs::read_configs(None);
 
-    let res = api::fetch_product_by_sha(&confs, file_sha).expect("Failed fetch SHA");
+    let client = api::VeyeClient::new(&confs.api);
+    let res = api::fetch_product_by_sha(&client, file_sha).expect("Failed fetch SHA");
 
     let prod_url = "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
     assert_eq!(Some(prod_url), res.url);
@@ -226,8 +229,8 @@ fn test_proxy_call_fetch_product_details_by_sha(){
 
     let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
     let confs = configs::read_configs(None);
-
-    let res = api::fetch_product_by_sha(&confs, file_sha).expect("Failed fetch SHA");
+    let client = api::VeyeClient::new(&confs.api);
+    let res = api::fetch_product_by_sha(&client, file_sha).expect("Failed fetch SHA");
 
     let prod_url = "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
     assert_eq!(Some(prod_url), res.url);

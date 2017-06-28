@@ -115,9 +115,11 @@ pub fn start_sha_fetcher(configs: configs::Configs, sha_ch:  Receiver<ProductSHA
 
     let (sender, receiver) = channel::<ProductMatch>();
     let handle = thread::spawn(move || {
+        let client = api::VeyeClient::new(&configs.api);
+
         for sha in sha_ch.into_iter() {
             let sha_code = sha.value.clone();
-            let prod = match api::fetch_product_details_by_sha(&configs, sha_code.as_str()) {
+            let prod = match api::fetch_product_details_by_sha(&client, sha_code.as_str()) {
                 Ok(mut m) => {
                     m.sha = Some(sha); //attach original sha document to have filepath data
                     m
