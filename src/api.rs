@@ -1,10 +1,12 @@
-use std::io::{self, Read, Error, ErrorKind};
+use std::str;
+use std::io::{self, Read, Write, Error, ErrorKind};
 use std::borrow::Cow;
 
+use futures::{Future, Stream};
 use hyper;
-use hyper::{client, Client, Url };
-use hyper::net::HttpsConnector;
-use hyper_native_tls::NativeTlsClient;
+use hyper::{client, Client, Uri };
+use hyper_tls::HttpsConnector;
+use tokio_core::reactor;
 
 use std::time::Duration;
 use serde_json;
@@ -34,7 +36,7 @@ pub fn to_product_url(api_confs: &ApiConfigs, lang: &str, prod_key: &str, versio
 
 //it's used to build API url
 fn configs_to_url(api_confs: &ApiConfigs, resource_path: &str)
-    -> Result<hyper::Url, hyper::error::ParseError> {
+    -> Result<hyper::Uri, hyper::error::UriError> {
     let url_str = match api_confs.port {
         None => {
             format!(
@@ -51,36 +53,34 @@ fn configs_to_url(api_confs: &ApiConfigs, resource_path: &str)
         )
     };
 
-    Url::parse(url_str.as_str())
+    url_str.parse::<Uri>()
 }
 
-fn request_json<'a>(uri: &Url, proxy_confs: &'a ProxyConfigs) -> Option<String> {
-    let ssl = NativeTlsClient::new().unwrap();
-    let connector = HttpsConnector::new(ssl);
+fn build_ssl_client(wpool: &mut reactor::Core) -> hyper::Client<HttpsConnector<hyper::client::HttpConnector>> {
+    let handle = wpool.handle();
+    let ssl_connector = HttpsConnector::new(4, &handle).expect("Failed to init SSL connector");
 
-    //use proxy only iff user has defined proxy host and port
-    let mut client = if proxy_confs.is_complete() {
-        let host = Cow::from(proxy_confs.host.clone().unwrap());
-        let port = proxy_confs.port.clone().unwrap();
-        let scheme = proxy_confs.scheme.clone().unwrap_or("http".to_string());
+    let client = Client::configure()
+                    .connector(ssl_connector) //4threads?
+                    .build( &handle );
 
-        let ssl_proxy = NativeTlsClient::new().unwrap();
-        let proxy = client::ProxyConfig::new (
-            scheme.as_str(), host, port, connector, ssl_proxy
-        );
+    client
+}
 
-        Client::with_proxy_config(proxy)
+fn request_json<'a>(
+    uri: &Uri,  proxy_confs: &'a ProxyConfigs, wpool: &mut reactor::Core
+) -> Option<String> {
+    let client = build_ssl_client( wpool );
+
+    let req = client.get(uri.clone()).and_then(|res| { res.body().concat2() });
+
+    let res = wpool.run(req).expect("Failed to run request");
+    if let Some(content) = str::from_utf8(&res).ok(){
+        Some(content.to_string())
     } else {
-        Client::with_connector(connector)
-    };
+        None
+    }
 
-    client.set_read_timeout(Some(Duration::new(5,0)));
-
-    let mut res = client.get(uri.as_str()).send().expect("Failed to fetch results from the url");
-    let mut body = String::new();
-    res.read_to_string(&mut body).expect("Failed to read response body");
-
-    Some(body)
 }
 
 pub fn fetch_product_details_by_sha(confs: &Configs, file_sha: &str)
@@ -107,10 +107,13 @@ pub fn fetch_product_details_by_sha(confs: &Configs, file_sha: &str)
     }
 }
 
-pub fn fetch_product_by_sha(confs: &Configs, sha: &str)
+pub fn fetch_product_by_sha<'z>(confs: &Configs, sha: &str)
     -> Result<product::ProductMatch, io::Error> {
     let api_confs = confs.api.clone();
-    let resource_path = format!("products/sha/{}", encode_sha(sha) );
+    let resource_path = format!(
+        "products/sha/{}?api_key={}",
+        encode_sha(sha), api_confs.key.clone().unwrap().as_str()
+    );
     let mut resource_url = match configs_to_url(&api_confs, resource_path.as_str()) {
         Ok(the_url) => the_url,
         Err(_)      => {
@@ -123,14 +126,8 @@ pub fn fetch_product_by_sha(confs: &Configs, sha: &str)
         }
     };
 
-    //attach query params
-    resource_url
-        .query_pairs_mut()
-        .clear()
-        .append_pair("api_key", api_confs.key.clone().unwrap().as_str());
-
-
-    let json_txt = request_json( &resource_url, &confs.proxy );
+    let mut wpool = reactor::Core::new()?;
+    let json_txt = request_json( &resource_url, &confs.proxy, &mut wpool );
     process_sha_response(json_txt)
 }
 
@@ -159,14 +156,18 @@ pub fn encode_language<'b>(lang: &'b str) -> String {
     encoded_lang.replace(".", "").trim().to_lowercase().to_string()
 }
 
-pub fn fetch_product<'a>(
+pub fn fetch_product<'z>(
     confs: &Configs, lang: &str, prod_key: &str, version: &str
 ) -> Result<product::ProductMatch, io::Error> {
 
     let api_confs = confs.api.clone();
     let encoded_prod_key = encode_prod_key(&prod_key);
     let encoded_lang = encode_language(lang);
-    let resource_path = format!("products/{}/{}", encoded_lang.clone(), encoded_prod_key.clone());
+    let resource_path = format!(
+        "products/{}/{}?prod_version={}&api_key={}",
+        encoded_lang.clone(), encoded_prod_key.clone(), version, api_confs.key.clone().unwrap().as_str()
+    );
+
     let prod_url = to_product_url(
         &confs.api,
         encoded_lang.clone().as_str(),
@@ -186,14 +187,8 @@ pub fn fetch_product<'a>(
         }
     };
 
-    //attach query params
-    resource_url
-        .query_pairs_mut()
-        .clear()
-        .append_pair("prod_version", version)
-        .append_pair("api_key", api_confs.key.clone().unwrap().as_str());
-
-    let json_txt = request_json( &resource_url, &confs.proxy );
+    let mut wpool = reactor::Core::new()?;
+    let json_txt = request_json( &resource_url, &confs.proxy, &mut wpool );
     process_product_response(json_txt, Some(prod_url))
 }
 
@@ -217,14 +212,14 @@ struct ShaItem {
 }
 
 //-- helper functions
-pub fn process_sha_response(json_text: Option<String> ) -> Result<product::ProductMatch, io::Error> {
+pub fn process_sha_response<'a>(json_text: Option<String> ) -> Result<product::ProductMatch, io::Error> {
     if json_text.is_none() {
         return Err(
             Error::new(ErrorKind::Other, "No response from API")
         )
     }
 
-    let res: serde_json::Value = serde_json::from_str(json_text.unwrap().as_str())?;
+    let res: serde_json::Value = serde_json::from_str(&json_text.unwrap())?;
 
     if res.is_object() && res.get("error").is_some() {
         let e = Error::new(
@@ -283,7 +278,7 @@ struct LicenseItem {
     url: Option<String>
 }
 
-pub fn process_product_response(
+pub fn process_product_response<'a>(
     json_text: Option<String>, prod_url: Option<String>
 ) -> Result<product::ProductMatch, io::Error> {
 
@@ -293,7 +288,7 @@ pub fn process_product_response(
         )
     }
 
-    let res: serde_json::Value = serde_json::from_str( &json_text.unwrap().as_str() )?;
+    let res: serde_json::Value = serde_json::from_str( &json_text.unwrap() )?;
     if !res.is_object() {
         return Err(Error::new(ErrorKind::Other, "No product details"));
     }

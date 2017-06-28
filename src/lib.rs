@@ -3,14 +3,17 @@ extern crate sha2;
 extern crate base64;
 extern crate sha1;
 extern crate md5;
+
+extern crate futures;
+extern crate tokio_core;
 extern crate hyper;
-extern crate hyper_native_tls;
-extern crate csv;
+extern crate hyper_tls;
+
+extern crate walkdir;
 extern crate regex;
 
+extern crate csv;
 extern crate toml;
-extern crate walkdir;
-
 extern crate serde_json;
 
 #[macro_use]
