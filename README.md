@@ -122,6 +122,8 @@ It's possible to tweak a setting of the command-line tool with environmental var
 | VERSIONEYE\_PROXY\_HOST| None         | specifies proxy host |
 | VERSIONEYE\_PROXY\_PORT| None         | specifies proxy port |
 | VERSIONEYE\_PROXY\_SCHEME| http       | specifies proxy scheme |
+| VERSIONEYE_SCAN_MAX_FILE_SIZE | 64MB |  max file size in bytes |
+| VERSIONEYE_SCAN_MIN_FILE_SIZE | 0    | min file size in bytes |
 
 NB! Use cmd-line flags or config-file to configure file extensions used by a digest algo;
 
@@ -161,6 +163,10 @@ exts = ["whl", "gz"]
 [digests.sha1]
 blocked = true
 
+# specify scan options
+[scan]
+max_file_size = 67108864
+min_file_size = 1024
 ```
 
 ## Build
