@@ -62,10 +62,11 @@ veye_checker shas tests/fixtures/files/ --max-file-size=10000 --min-file-size=50
 It is possible to configure which digest algorithms to use.
 commandline flags for blocking algos: `no-md5, no-sha1, no-sha512`
 commandline options to overwrite list of file-extensions of a digest algos: `ext-md5, ext-sha1, ext-sha512`
+commandline flag `-v` / `--verbose` prints out scan configuration
 
 ```bash
 # dont use MD5 for next scan and update file extensions to use for SHA1
-veye_checker shas ../jars -a "api-key" --no-md5 --ext-sha1="whl,jar,tgz"
+veye_checker shas ../jars -a "api-key" -v --no-md5 --ext-sha1="whl,jar,tgz"
 ```
 
 

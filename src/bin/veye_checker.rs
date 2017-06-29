@@ -30,6 +30,7 @@ fn main() {
     opts.optopt("a", "auth", "specifies the api-key for API calls", "API_TOKEN");
     opts.optopt("c", "config", "specifies the filepath to lookup configfile", "FILEPATH");
     opts.optflag("h", "help", "shows usage help");
+    opts.optflag("v", "verbose", "shows verbose config details");
 
     // options for algo settings
     opts.optflag("", "no-md5", "dont use MD5");
@@ -104,7 +105,10 @@ fn do_resolve_task(matches: &getopts::Matches) -> Result<bool, String> {
     // execute command pipeline
     let mut ext_table = digest_ext_table::DigestExtTable::default();
     add_matches_into_ext_table(&mut ext_table, matches);
-    println!("Digest configuration:\n {:?}", &ext_table);
+    if matches.opt_present("verbose") {
+        println!("Digest configuration:\n {:?}", &ext_table);
+    }
+
 
     let dir = PathBuf::from(&dir_txt);
     let (sha_ch, h1) = tasks::start_path_scanner(ext_table, dir, global_configs.scan.clone());
@@ -146,7 +150,9 @@ fn do_shas_task(matches: &getopts::Matches) -> Result<bool, String> {
 
     let mut ext_table = digest_ext_table::DigestExtTable::default();
     add_matches_into_ext_table(&mut ext_table, matches);
-    println!("Digest configuration:\n {:?}", &ext_table);
+    if matches.opt_present("verbose") {
+        println!("Digest configuration:\n {:?}", &ext_table);
+    }
 
     // start processes
     let dir = PathBuf::from(&dir_txt);
