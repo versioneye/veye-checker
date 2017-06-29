@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [unreleased] v0.2.0 - 2017-06-2x
+## v0.2.0 - 2017-06-29
 ### Added 
 
 - issue #19 - add options to change the range of file size for digestable files; 
