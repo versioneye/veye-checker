@@ -52,6 +52,6 @@ echo "#-- lookup command"
 assert "exec ${VERSIONEYE_BIN_PATH} lookup ${FILE_SHA}" "${EXPECTED2}"
 
 echo "#-- resolve command"
-assert "exec ${VERSIONEYE_BIN_PATH} resolve ${FIXTURES_PATH}" "${EXPECTED2}"
+assert "exec ${VERSIONEYE_BIN_PATH} resolve ${FIXTURES_PATH}" "${EXPECTED3}"
 
 assert_end
