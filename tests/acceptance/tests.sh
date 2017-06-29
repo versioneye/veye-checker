@@ -22,14 +22,10 @@ echo "#-- initializing expected results"
 define(){ IFS='\n' read -r -d '' ${1} || true; }
 
 define EXPECTED1 <<EOF
-path_scanner: skipping "../fixtures/files"
-filepath;packaging;sha_method;sha_value
-../fixtures/files/npm.tgz;;sha1;6f631aef336d6c46362b51764044ce216be3c051
-../fixtures/files/pypi.tar.gz;;md5;fe7daf822f1d36d1bd37ac41cf5817e7
-../fixtures/files/pypi.whl;;md5;ffa1ee60be515c04b4c13fd13feea27a
-../fixtures/files/test.jar;;sha1;5675fd96b29656504b86029551973d60fb41339b
+path_scanner: skipping "../fixtures/files"\nfilepath;packaging;sha_method;sha_value
 ../fixtures/files/test.nupkg;;sha512;U82mHQSKaIk+lpSVCbWYKNavmNH1i5xrExDEquU1i6I5pV6UMOqRnJRSlKO3cMPfcpp0RgDY+8jUXHdQ4IfXvw==
-Done!
+../fixtures/files/npm.tgz;;sha1;6f631aef336d6c46362b51764044ce216be3c051\n../fixtures/files/pypi.whl;;md5;ffa1ee60be515c04b4c13fd13feea27a
+../fixtures/files/pypi.tar.gz;;md5;fe7daf822f1d36d1bd37ac41cf5817e7\n../fixtures/files/test.jar;;sha1;5675fd96b29656504b86029551973d60fb41339b\nDone!
 EOF
 
 define EXPECTED2 <<EOF
@@ -39,13 +35,12 @@ EOF
 
 
 define EXPECTED3 << EOF
-path_scanner: skipping "../fixtures/files"
-filepath;packaging;sha_method;sha_value;language;prod_key;version;n_vulns;product_url;license;error
+path_scanner: skipping "../fixtures/files"\nfilepath;packaging;sha_method;sha_value;language;prod_key;version;n_vulns;product_url;license;error
+../fixtures/files/test.nupkg;;sha512;U82mHQSKaIk+lpSVCbWYKNavmNH1i5xrExDEquU1i6I5pV6UMOqRnJRSlKO3cMPfcpp0RgDY+8jUXHdQ4IfXvw==;csharp;Newtonsoft.Json;9.0.1;0;https://www.versioneye.com/csharp/Newtonsoft.Json/9.0.1;MIT;
 ../fixtures/files/npm.tgz;;sha1;6f631aef336d6c46362b51764044ce216be3c051;nodejs;etag;1.8.0;0;https://www.versioneye.com/nodejs/etag/1.8.0;MIT;
-../fixtures/files/pypi.tar.gz;;md5;fe7daf822f1d36d1bd37ac41cf5817e7;python;restea;0.3.4;0;https://www.versioneye.com/python/restea/0.3.4;MIT;
 ../fixtures/files/pypi.whl;;md5;ffa1ee60be515c04b4c13fd13feea27a;python;wheel;0.30.0a0;0;https://www.versioneye.com/python/wheel/0.30.0a0;MIT;
-../fixtures/files/test.jar;;sha1;5675fd96b29656504b86029551973d60fb41339b;java;commons-beanutils/commons-beanutils;1.7.0;1;https://www.versioneye.com/java/commons-beanutils/commons-beanutils/1.7.0;unknown;
-../fixtures/files/test.nupkg;;sha512;U82mHQSKaIk+lpSVCbWYKNavmNH1i5xrExDEquU1i6I5pV6UMOqRnJRSlKO3cMPfcpp0RgDY+8jUXHdQ4IfXvw==;csharp;Newtonsoft.Json;9.0.1;0;https://www.versioneye.com/csharp/Newtonsoft.Json/9.0.1;MIT;\nDone!
+../fixtures/files/pypi.tar.gz;;md5;fe7daf822f1d36d1bd37ac41cf5817e7;python;restea;0.3.4;0;https://www.versioneye.com/python/restea/0.3.4;MIT;
+../fixtures/files/test.jar;;sha1;5675fd96b29656504b86029551973d60fb41339b;java;commons-beanutils/commons-beanutils;1.7.0;1;https://www.versioneye.com/java/commons-beanutils/commons-beanutils/1.7.0;unknown;\nDone!
 EOF
 
 
@@ -54,9 +49,9 @@ echo "#-- shas command"
 assert "exec ${VERSIONEYE_BIN_PATH} shas ${FIXTURES_PATH}" "${EXPECTED1}"
 
 echo "#-- lookup command"
-assert "exec ${VERSIONEYE_BIN_PATH} lookup ${FILE_SHA}" "${EXPECTED}"
+assert "exec ${VERSIONEYE_BIN_PATH} lookup ${FILE_SHA}" "${EXPECTED2}"
 
 echo "#-- resolve command"
-assert "exec ${VERSIONEYE_BIN_PATH} resolve ${FIXTURES_PATH}" "${EXPECTED}"
+assert "exec ${VERSIONEYE_BIN_PATH} resolve ${FIXTURES_PATH}" "${EXPECTED2}"
 
 assert_end

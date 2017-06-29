@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 REPO_URL="https://github.com/versioneye/veye-checker.git"
+RELEASE_BRANCH="master"
+
 WORK_DIR="${HOME}/Ideaprojects/veye-checker/provision/osx/veye-checker"
 TEST_DIR="${WORK_DIR}/tests/acceptance"
 
@@ -14,7 +16,7 @@ fi
 RELEASE_PATH="${RELEASE_DIR}/veye_checker_osx_${RELEASE_VERSION}"
 
 if [ ! -d "$WORK_DIR" ]; then
-    git clone ${REPO_URL}
+    git clone --branch="${RELEASE_BRANCH}" --single-branch ${REPO_URL}
 fi
 
 echo "Pulling latest code from master"
