@@ -3,6 +3,8 @@
 [![Dependency Status](https://www.versioneye.com/user/projects/5912d506e1638f0051a0a33b/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/5912d506e1638f0051a0a33b)
 [![Join the chat at Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/veye_checker/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
 
+** THIS PROJECT IS NOT ACTIVELY MAINTAINED ANYMORE! **
+
 It's a command-line util that scans packaged binaries and resolves their SHA digest values into the package information.
 The whole idea behind this utility is described in the Versioneye's blogpost ["Identifying components by SHA values"](https://blog.versioneye.com/2017/02/08/identifying-components-by-sha-values).
 
