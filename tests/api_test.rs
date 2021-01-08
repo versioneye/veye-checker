@@ -5,60 +5,62 @@ use std::env;
 use std::error::Error;
 use veye_checker::{api, configs};
 
-
 #[test]
-fn test_api_encode_prod_key(){
-    assert_eq!(api::encode_prod_key ("dot.net"), "dot~net");
+fn test_api_encode_prod_key() {
+    assert_eq!(api::encode_prod_key("dot.net"), "dot~net");
     assert_eq!(api::encode_prod_key("slash/net"), "slash:net");
     assert_eq!(api::encode_prod_key("dot.net/slash"), "dot~net:slash");
 }
 
 #[test]
-fn test_api_encode_language(){
+fn test_api_encode_language() {
     assert_eq!("csharp".to_string(), api::encode_language("CSharp"));
     assert_eq!("nodejs".to_string(), api::encode_language("Node.JS"));
     assert_eq!("java".to_string(), api::encode_language("java"));
 }
 
 #[test]
-fn test_api_encode_sha(){
-    let original_sha = "/uVunD0tcI2UQCzFp0g46+CjSF2ElQ/Bc9tWw8FS4f0iIK728XCjY8stn3+s78tiz8x2EUGwAnaOVfQJB6hI5g==";
+fn test_api_encode_sha() {
+    let original_sha =
+        "/uVunD0tcI2UQCzFp0g46+CjSF2ElQ/Bc9tWw8FS4f0iIK728XCjY8stn3+s78tiz8x2EUGwAnaOVfQJB6hI5g==";
     let encoded_sha = "%2FuVunD0tcI2UQCzFp0g46%2BCjSF2ElQ%2FBc9tWw8FS4f0iIK728XCjY8stn3%2Bs78tiz8x2EUGwAnaOVfQJB6hI5g%3D%3D";
     assert_eq!(encoded_sha.to_string(), api::encode_sha(original_sha));
 }
 
 #[test]
-fn test_api_to_product_url_with_default_settings(){
+fn test_api_to_product_url_with_default_settings() {
     let api_confs = configs::ApiConfigs::default();
     let prod_url = api::to_product_url(&api_confs, "rust", "serde", "0.4.0");
-    assert_eq!("https://www.versioneye.com/rust/serde/0.4.0".to_string(), prod_url);
+    assert_eq!(
+        "https://www.versioneye.com/rust/serde/0.4.0".to_string(),
+        prod_url
+    );
 }
 
 #[test]
-fn test_api_to_product_url_with_overridden_confs(){
+fn test_api_to_product_url_with_overridden_confs() {
     let api_confs = configs::ApiConfigs {
         host: Some("abc.de".to_string()),
         port: Some(3000),
         scheme: Some("http".to_string()),
         path: None,
-        key: None
+        key: None,
     };
 
     let prod_url = api::to_product_url(&api_confs, "rust", "serde", "0.4.1");
     assert_eq!("http://abc.de:3000/rust/serde/0.4.1".to_string(), prod_url);
 }
 
-
 #[test]
-#[cfg(feature="api")]
-fn test_api_call_fetch_product_by_sha(){
-
+#[cfg(feature = "api")]
+fn test_api_call_fetch_product_by_sha() {
     let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
     let confs = configs::read_configs(None);
 
     let res = api::fetch_product_by_sha(&confs, file_sha).expect("Failed fetch SHA");
 
-    let prod_url = "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
+    let prod_url =
+        "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
     assert_eq!(Some(prod_url), res.url);
     assert_eq!(true, res.sha.is_some());
 
@@ -72,16 +74,19 @@ fn test_api_call_fetch_product_by_sha(){
     let prod = res.product.unwrap();
     assert_eq!("Java".to_string(), prod.language);
     assert_eq!("Maven2".to_string(), prod.prod_type.unwrap());
-    assert_eq!("commons-beanutils/commons-beanutils".to_string(), prod.prod_key);
+    assert_eq!(
+        "commons-beanutils/commons-beanutils".to_string(),
+        prod.prod_key
+    );
     assert_eq!("1.7.0".to_string(), prod.version);
     assert_eq!("".to_string(), prod.name);
 }
 
 #[test]
-#[cfg(feature="api")]
-fn test_api_call_fetch_product_by_sha_nuget_special_symbols(){
-
-    let file_sha = "/uVunD0tcI2UQCzFp0g46+CjSF2ElQ/Bc9tWw8FS4f0iIK728XCjY8stn3+s78tiz8x2EUGwAnaOVfQJB6hI5g==";
+#[cfg(feature = "api")]
+fn test_api_call_fetch_product_by_sha_nuget_special_symbols() {
+    let file_sha =
+        "/uVunD0tcI2UQCzFp0g46+CjSF2ElQ/Bc9tWw8FS4f0iIK728XCjY8stn3+s78tiz8x2EUGwAnaOVfQJB6hI5g==";
     let confs = configs::read_configs(None);
 
     let res = api::fetch_product_by_sha(&confs, file_sha).expect("Failed fetch SHA");
@@ -107,8 +112,8 @@ fn test_api_call_fetch_product_by_sha_nuget_special_symbols(){
 
 //1.st run Squid container, 2. cargo test test_proxy --features=proxy
 #[test]
-#[cfg(feature="proxy")]
-fn test_proxy_call_fetch_product_by_sha(){
+#[cfg(feature = "proxy")]
+fn test_proxy_call_fetch_product_by_sha() {
     env::set_var("VERSIONEYE_PROXY_HOST", "127.0.0.1");
     env::set_var("VERSIONEYE_PROXY_PORT", "3128");
     env::set_var("VERSIONEYE_PROXY_SCHEME", "http");
@@ -118,7 +123,8 @@ fn test_proxy_call_fetch_product_by_sha(){
 
     let res = api::fetch_product_by_sha(&confs, file_sha).expect("Failed fetch SHA");
 
-    let prod_url = "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
+    let prod_url =
+        "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
     assert_eq!(Some(prod_url), res.url);
     assert_eq!(true, res.sha.is_some());
 
@@ -132,7 +138,10 @@ fn test_proxy_call_fetch_product_by_sha(){
     let prod = res.product.unwrap();
     assert_eq!("Java".to_string(), prod.language);
     assert_eq!("Maven2".to_string(), prod.prod_type.unwrap());
-    assert_eq!("commons-beanutils/commons-beanutils".to_string(), prod.prod_key);
+    assert_eq!(
+        "commons-beanutils/commons-beanutils".to_string(),
+        prod.prod_key
+    );
     assert_eq!("1.7.0".to_string(), prod.version);
     assert_eq!("".to_string(), prod.name);
 
@@ -143,12 +152,16 @@ fn test_proxy_call_fetch_product_by_sha(){
 }
 
 #[test]
-#[cfg(feature="api")]
-fn test_api_call_fetch_product(){
+#[cfg(feature = "api")]
+fn test_api_call_fetch_product() {
     let confs = configs::read_configs(None);
     let res = api::fetch_product(
-        &confs, "Java", "commons-beanutils/commons-beanutils", "1.7.0"
-    ).expect("Failed to fetch product details");
+        &confs,
+        "Java",
+        "commons-beanutils/commons-beanutils",
+        "1.7.0",
+    )
+    .expect("Failed to fetch product details");
 
     assert_eq!(false, res.sha.is_some());
     assert_eq!(true, res.product.is_some());
@@ -156,22 +169,29 @@ fn test_api_call_fetch_product(){
     let prod = res.product.unwrap();
     assert_eq!("java".to_string(), prod.language);
     assert_eq!("Maven2".to_string(), prod.prod_type.unwrap());
-    assert_eq!("commons-beanutils/commons-beanutils".to_string(), prod.prod_key);
+    assert_eq!(
+        "commons-beanutils/commons-beanutils".to_string(),
+        prod.prod_key
+    );
     assert_eq!("1.7.0".to_string(), prod.version);
     assert_eq!("commons-beanutils".to_string(), prod.name);
 }
 
 #[test]
-#[cfg(feature="proxy")]
-fn test_proxy_call_fetch_product(){
+#[cfg(feature = "proxy")]
+fn test_proxy_call_fetch_product() {
     env::set_var("VERSIONEYE_PROXY_HOST", "127.0.0.1");
     env::set_var("VERSIONEYE_PROXY_PORT", "3128");
     env::set_var("VERSIONEYE_PROXY_SCHEME", "http");
 
     let confs = configs::read_configs(None);
     let res = api::fetch_product(
-        &confs, "Java", "commons-beanutils/commons-beanutils", "1.7.0"
-    ).expect("Failed to fetch product details");
+        &confs,
+        "Java",
+        "commons-beanutils/commons-beanutils",
+        "1.7.0",
+    )
+    .expect("Failed to fetch product details");
 
     assert_eq!(false, res.sha.is_some());
     assert_eq!(true, res.product.is_some());
@@ -179,7 +199,10 @@ fn test_proxy_call_fetch_product(){
     let prod = res.product.unwrap();
     assert_eq!("java".to_string(), prod.language);
     assert_eq!("Maven2".to_string(), prod.prod_type.unwrap());
-    assert_eq!("commons-beanutils/commons-beanutils".to_string(), prod.prod_key);
+    assert_eq!(
+        "commons-beanutils/commons-beanutils".to_string(),
+        prod.prod_key
+    );
     assert_eq!("1.7.0".to_string(), prod.version);
     assert_eq!("commons-beanutils".to_string(), prod.name);
 
@@ -189,16 +212,16 @@ fn test_proxy_call_fetch_product(){
     env::remove_var("VERSIONEYE_PROXY_SCHEME");
 }
 
-
 #[test]
-#[cfg(feature="api")]
-fn test_api_call_fetch_product_details_by_sha(){
+#[cfg(feature = "api")]
+fn test_api_call_fetch_product_details_by_sha() {
     let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
     let confs = configs::read_configs(None);
 
     let res = api::fetch_product_by_sha(&confs, file_sha).expect("Failed fetch SHA");
 
-    let prod_url = "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
+    let prod_url =
+        "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
     assert_eq!(Some(prod_url), res.url);
     assert_eq!(true, res.sha.is_some());
 
@@ -212,14 +235,17 @@ fn test_api_call_fetch_product_details_by_sha(){
     let prod = res.product.unwrap();
     assert_eq!("Java".to_string(), prod.language);
     assert_eq!("Maven2".to_string(), prod.prod_type.unwrap());
-    assert_eq!("commons-beanutils/commons-beanutils".to_string(), prod.prod_key);
+    assert_eq!(
+        "commons-beanutils/commons-beanutils".to_string(),
+        prod.prod_key
+    );
     assert_eq!("1.7.0".to_string(), prod.version);
     assert_eq!("".to_string(), prod.name);
 }
 
 #[test]
-#[cfg(feature="proxy")]
-fn test_proxy_call_fetch_product_details_by_sha(){
+#[cfg(feature = "proxy")]
+fn test_proxy_call_fetch_product_details_by_sha() {
     env::set_var("VERSIONEYE_PROXY_HOST", "127.0.0.1");
     env::set_var("VERSIONEYE_PROXY_PORT", "3128");
     env::set_var("VERSIONEYE_PROXY_SCHEME", "http");
@@ -229,7 +255,8 @@ fn test_proxy_call_fetch_product_details_by_sha(){
 
     let res = api::fetch_product_by_sha(&confs, file_sha).expect("Failed fetch SHA");
 
-    let prod_url = "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
+    let prod_url =
+        "https://www.versioneye.com/Java/commons-beanutils/commons-beanutils".to_string();
     assert_eq!(Some(prod_url), res.url);
     assert_eq!(true, res.sha.is_some());
 
@@ -243,7 +270,10 @@ fn test_proxy_call_fetch_product_details_by_sha(){
     let prod = res.product.unwrap();
     assert_eq!("Java".to_string(), prod.language);
     assert_eq!("Maven2".to_string(), prod.prod_type.unwrap());
-    assert_eq!("commons-beanutils/commons-beanutils".to_string(), prod.prod_key);
+    assert_eq!(
+        "commons-beanutils/commons-beanutils".to_string(),
+        prod.prod_key
+    );
     assert_eq!("1.7.0".to_string(), prod.version);
     assert_eq!("".to_string(), prod.name);
 
@@ -254,7 +284,7 @@ fn test_proxy_call_fetch_product_details_by_sha(){
 }
 
 #[test]
-fn test_api_process_sha_response(){
+fn test_api_process_sha_response() {
     let file_sha = "5675fd96b29656504b86029551973d60fb41339b";
     let res_body = r#"
     [{
@@ -273,7 +303,6 @@ fn test_api_process_sha_response(){
     let res = api::process_sha_response(Some(res_body.to_string()));
 
     if let Some(prod_match) = res.ok() {
-
         assert_eq!(true, prod_match.sha.is_some());
         let sha = prod_match.sha.unwrap();
         assert_eq!("jar".to_string(), sha.packaging);
@@ -285,7 +314,10 @@ fn test_api_process_sha_response(){
         let prod = prod_match.product.unwrap();
         assert_eq!("Java".to_string(), prod.language);
         assert_eq!("Maven2".to_string(), prod.prod_type.unwrap());
-        assert_eq!("commons-beanutils/commons-beanutils".to_string(), prod.prod_key);
+        assert_eq!(
+            "commons-beanutils/commons-beanutils".to_string(),
+            prod.prod_key
+        );
         assert_eq!("1.7.0".to_string(), prod.version);
         assert_eq!("".to_string(), prod.name);
     } else {
@@ -294,8 +326,9 @@ fn test_api_process_sha_response(){
 }
 
 #[test]
-fn test_api_process_sha_response_with_null_fields(){
-    let file_sha = "U82mHQSKaIk+lpSVCbWYKNavmNH1i5xrExDEquU1i6I5pV6UMOqRnJRSlKO3cMPfcpp0RgDY+8jUXHdQ4IfXvw==";
+fn test_api_process_sha_response_with_null_fields() {
+    let file_sha =
+        "U82mHQSKaIk+lpSVCbWYKNavmNH1i5xrExDEquU1i6I5pV6UMOqRnJRSlKO3cMPfcpp0RgDY+8jUXHdQ4IfXvw==";
     let res_body = r#"
     [
         {
@@ -332,11 +365,10 @@ fn test_api_process_sha_response_with_null_fields(){
         assert_eq!("9.0.1".to_string(), prod.version);
         assert_eq!("".to_string(), prod.name);
     }
-
 }
 
 #[test]
-fn test_api_process_sha_response_for_npm(){
+fn test_api_process_sha_response_for_npm() {
     let file_sha = "6f631aef336d6c46362b51764044ce216be3c051";
     let res_body = r#"
     [{
@@ -371,12 +403,11 @@ fn test_api_process_sha_response_for_npm(){
         assert_eq!("etag".to_string(), prod.prod_key);
         assert_eq!("1.8.0".to_string(), prod.version);
         assert_eq!("".to_string(), prod.name);
-
     }
 }
 
 #[test]
-fn test_api_process_sha_response_with_empty_result(){
+fn test_api_process_sha_response_with_empty_result() {
     let res = api::process_sha_response(Some("".to_string()));
     assert_eq!(true, res.is_err());
     let e = res.err().unwrap();
@@ -384,7 +415,7 @@ fn test_api_process_sha_response_with_empty_result(){
 }
 
 #[test]
-fn test_api_process_sha_response_with_api_error(){
+fn test_api_process_sha_response_with_api_error() {
     let body_txt = r#"
         {"error": "Failed to match it"}
     "#;
@@ -393,7 +424,7 @@ fn test_api_process_sha_response_with_api_error(){
 }
 
 #[test]
-fn test_api_process_product_response(){
+fn test_api_process_product_response() {
     let body_txt = r#"
     {
         "name": "commons-beanutils",
@@ -423,14 +454,16 @@ fn test_api_process_product_response(){
     let prod = prod_match.product.unwrap();
     assert_eq!("java".to_string(), prod.language);
     assert_eq!("Maven2".to_string(), prod.prod_type.unwrap());
-    assert_eq!("commons-beanutils/commons-beanutils".to_string(), prod.prod_key);
+    assert_eq!(
+        "commons-beanutils/commons-beanutils".to_string(),
+        prod.prod_key
+    );
     assert_eq!("1.7.0".to_string(), prod.version);
     assert_eq!("commons-beanutils".to_string(), prod.name);
-
 }
 
 #[test]
-fn test_api_process_product_response_with_empty_result(){
+fn test_api_process_product_response_with_empty_result() {
     let res = api::process_product_response(Some("".to_string()), None);
     assert_eq!(true, res.is_err());
     let e = res.err().unwrap();
@@ -438,7 +471,7 @@ fn test_api_process_product_response_with_empty_result(){
 }
 
 #[test]
-fn test_api_process_product_response_with_api_error(){
+fn test_api_process_product_response_with_api_error() {
     let body_txt = r#"
         {"error": "Failed to match it"}
     "#;
